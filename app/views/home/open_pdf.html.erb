@@ -1,0 +1,40 @@
+<%# eventデータ更新の為、DOMの更新を行う：ページ変化 %>
+
+<h1>PDF表示用ページ</h1>
+
+<p id="pdf-id">ここにPDF IDが表示されます</p>
+
+
+<%# <iframe id="content" src="about:blank" width="100%" height="600px"></iframe> %>
+<%# <iframe src= "pdf-id-link" width="0" height="0" frameborder="0" style="border:none;"></iframe> %>
+<iframe id="content" src = "about:blank"  width="0" height="0" frameborder="0" style="border:none;"></iframe>
+
+<script>
+   //ページロード完了時に関数を実行する
+  document.addEventListener("DOMContentLoaded", function() {
+    // Pusherのインスタンスを作成
+    var pusher = new Pusher('32f2640be6b94e4b6afe', {
+      cluster: 'ap3'
+    });
+
+    var channel = pusher.subscribe('my-channel');
+
+    channel.bind('my-event', function(data) {
+      // 受け取ったPDFのURLをiframeのsrc属性に設定
+      document.getElementById('content').src = data.message;
+
+      // 受け取ったmessageをDOMに表示
+      document.getElementById('pdf-id').textContent = data.message;
+
+      // URLを生成
+      var url = data.message;
+      // リンクのhref属性を動的に変更
+      document.getElementById('pdf-id-link').href = url;
+      // 新しいタブでリンクを自動的に開く
+    //   window.open(url, '_blank');
+      window.open(url, 'MyWindow',"fullscreen=yes","menubar=no");
+    });
+  });
+</script>
+
+<%= link_to '現在表示PDF', 'https://www.google.co.jp/', id: "pdf-id-link" %>

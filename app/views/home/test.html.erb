@@ -1,0 +1,54 @@
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height:100vh;
+      }
+      iframe {
+        border:none;
+        width:100%;
+        height:100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <%# 空iframe作成：JS動的に内容変更 %>
+    <iframe id="content" src="about:blank"></iframe>
+    <script>
+        //関数 Update:
+      function Update()
+      {
+        //変数 thePage:GASサーバーから値取得（）
+        var thePage = "<?!= thePage ?>";
+          //関数成功ハンドラー
+          .withSuccessHandler(
+            function(theID)
+            {
+              var theURL = "https://docs.google.com/file/d/" + theID + "/preview";
+
+              //条件分岐:srcが生成だれたURLと異なる場合実行する
+              if (document.getElementById("content").getAttribute("src") != theURL)
+              {
+                document.getElementById("content").setAttribute("src", theURL);
+              }
+            })
+          .withFailureHandler(
+            function()
+            {
+            })
+          .GetContentID(thePage);
+      }
+
+      window.onload = function()
+      {
+        Update();
+        setInterval(Update, 60000);
+      }
+    </script>
+  </body>
+</html>

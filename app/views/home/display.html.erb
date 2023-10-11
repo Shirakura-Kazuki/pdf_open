@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height:100vh;
+      }
+      iframe {
+        border:none;
+        width:100%;
+        height:100%;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe id="content" src= "https://www.google.co.jp/" ></iframe>
+    <script>
+      function Update()
+      {
+          .withSuccessHandler(
+            function(theID)
+            {
+              var theURL = pdf-id-link;
+              //ソースURLが異なる場合に実行する
+              if (document.getElementById("content").getAttribute("src") != theURL)
+              {
+                document.getElementById("content").setAttribute("src", theURL);
+              }
+            })
+          .withFailureHandler(
+            function()
+            {
+            })
+          .GetContentID(thePage);
+      }
+
+      window.onload = function()
+      {
+        Update();
+        setInterval(Update, 60000);
+      }
+    </script>
+  </body>
+</html>
