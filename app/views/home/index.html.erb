@@ -1,1 +1,14 @@
-<button id="send-notification">通知を送信</button>
+
+
+<%= form_tag send_pdf_path, method: :post do %>
+  <%= label_tag :pdf_url, "PDFファイル URL:" %>
+  <%= text_field_tag :pdf_url %>
+  <%= submit_tag "送信" %>
+<% end %>
+
+
+<h4>仮仕様</h4>
+<h3>https://drive.google.com/file/d/1gO5r0Gm2DjwU_AcKjLVzsNMJxTXbD0ZP/view?usp=drive_link</h3>
+<h4>ストレスケア</h4>
+<h3>https://drive.google.com/file/d/1f8dMbdF96eIgUmUNcFv7t3JVQqeU9Aew/view?usp=drive_link</h3>
+

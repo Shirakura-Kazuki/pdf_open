@@ -5,4 +5,7 @@ Rails.application.routes.draw do
   # PDFファイル表示用ページ
   get 'open_pdf' , to:'home#open_pdf'
   get 'display' , to:'home#display'
+  get 'test' ,to:'home#test'
+
+  post '/open_pdf', to: 'home#open_pdf'
 end

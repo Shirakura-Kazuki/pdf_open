@@ -2,13 +2,19 @@
 
 <h1>PDF表示用ページ</h1>
 
+<div>
+     <p>受け取り情報</p>
+     <p>DB管理_ID: <%= @ggid %></p>
+     <p>ファイル: <%= @ggfile %></p>
+     <p>作成者: <%= @gguser %></p>
+     <p>PDF ID: <%= @filegg %></p>
+</div>
+
+<h3>現在表示中のPDF</h3>
 <p id="pdf-id">ここにPDF IDが表示されます</p>
-
-
-<%# <iframe id="content" src="about:blank" width="100%" height="600px"></iframe> %>
-<%# <iframe src= "pdf-id-link" width="0" height="0" frameborder="0" style="border:none;"></iframe> %>
-<iframe id="content" src = "about:blank"  width="0" height="0" frameborder="0" style="border:none;"></iframe>
-
+<%# src:表示するファイル指定 %>
+<h3>表示プレビュー</h3>
+<iframe id="content" src= "theURL" ></iframe>
 <script>
    //ページロード完了時に関数を実行する
   document.addEventListener("DOMContentLoaded", function() {
@@ -30,11 +36,9 @@
       var url = data.message;
       // リンクのhref属性を動的に変更
       document.getElementById('pdf-id-link').href = url;
-      // 新しいタブでリンクを自動的に開く
-    //   window.open(url, '_blank');
-      window.open(url, 'MyWindow',"fullscreen=yes","menubar=no");
+      var theURL = url + "/preview";
     });
   });
 </script>
 
-<%= link_to '現在表示PDF', 'https://www.google.co.jp/', id: "pdf-id-link" %>
+<!--<%= link_to '現在表示PDF', 'https://www.google.co.jp/', id: "pdf-id-link" %>-->

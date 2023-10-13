@@ -1,54 +1,62 @@
-<html>
-  <head>
-    <base target="_top">
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        height:100vh;
-      }
-      iframe {
-        border:none;
-        width:100%;
-        height:100%;
-      }
-    </style>
-  </head>
+### Railsコード
 
-  <body>
-    <%# 空iframe作成：JS動的に内容変更 %>
-    <iframe id="content" src="about:blank"></iframe>
-    <script>
-        //関数 Update:
-      function Update()
-      {
-        //変数 thePage:GASサーバーから値取得（）
-        var thePage = "<?!= thePage ?>";
-          //関数成功ハンドラー
-          .withSuccessHandler(
-            function(theID)
-            {
-              var theURL = "https://docs.google.com/file/d/" + theID + "/preview";
+#### require 'net/http', 'uri', 'json', "base64"
+外部ライブラリを読み込む。
+HTTPリクエスト、URI解析、JSON処理、Base64エンコーディング・デコーディングに必要。
 
-              //条件分岐:srcが生成だれたURLと異なる場合実行する
-              if (document.getElementById("content").getAttribute("src") != theURL)
-              {
-                document.getElementById("content").setAttribute("src", theURL);
-              }
-            })
-          .withFailureHandler(
-            function()
-            {
-            })
-          .GetContentID(thePage);
-      }
+#### response = Net::HTTP.post(...)
+Google Apps ScriptのWeb APIに対してHTTP POSTリクエストを送る。
 
-      window.onload = function()
-      {
-        Update();
-        setInterval(Update, 60000);
-      }
-    </script>
-  </body>
-</html>
+#### case response when Net::HTTPSuccess
+HTTPステータスコードが成功を示す場合、何もしない。
+
+#### when Net::HTTPRedirection
+HTTPステータスコードがリダイレクトを示す場合、新しい場所にリダイレクト。
+
+#### else
+その他の場合、`response`を`nil`に設定。
+
+#### if response.nil?
+`response`が`nil`の場合、エラーとして処理。
+
+#### params = JSON.parse(response.body)
+HTTPレスポンスボディをJSONとして解析。
+
+#### File.open("download.pdf", "wb") do |file|
+Base64でエンコードされたPDFファイルをデコードし、ローカルに保存。
+
+### Google Apps Script（GAS）コード
+
+#### let POST_KEY_CODE = "download_SO1AZAhF9C1o7kaB52CK";
+認証用のキーコードを設定。
+
+#### let FOLDER_ID = "1qMCKoU4G2PlrsWgVVtaX4Na2dHur8i92";
+Google Driveの特定のフォルダID。
+
+#### function doPost(inPost)
+外部からのPOSTリクエストを受け取る関数。
+
+#### if (theInJson.keycode != POST_KEY_CODE)
+認証キーが一致しない場合、`access_denied`と返す。
+
+#### HandleFile(theInJson.id, theOutJson)
+ファイル処理を行う関数を呼び出す。
+
+#### function HandleFile(inID, inOutJson)
+指定されたIDのファイルをBase64でエンコード。
+
+#### function FindFile(inFolderID, inID)
+指定されたフォルダIDとファイルIDからファイルを検索。
+
+#### function CreateJsonOutput(inJson)
+JSON形式でレスポンスを作成。
+
+#### function test1()
+テスト関数。`HandleFile`関数をテスト。
+
+### どのような機能か、なぜ必要か
+Railsコードは、Google Driveから特定のPDFファイルをダウンロードするためのものです。
+GASコードは、特定のフォルダからファイルを探し、その内容をBase64エンコードして返すAPIを提供しています。
+RailsコードはこのAPIを利用して、ファイルをダウンロードします。
+
+このような構成は、例えば企業内で特定のドキュメントを安全に配布するようなケースで有用です。GASがGoogle Drive内のファイルアクセスを制御し、Railsアプリはそれを利用者に配布する役割を果たします。

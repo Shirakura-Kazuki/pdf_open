@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -17,32 +18,30 @@
     </style>
   </head>
   <body>
-    <iframe id="content" src= "https://www.google.co.jp/" ></iframe>
+    <!-- 初期値として指定されたURLをsrc属性に設定 -->
+    <iframe id="content" src="https://drive.google.com/file/d/1iZnyc-l0SIIwhd78N7Dd2593Soilqggs/preview"></iframe>
+    
+    <%# Pusherを通じてリアルタイムにPDFのURLを受け取り、そのURLをページ内の特定の要素に適用して、PDFを表示したり、リンクとして提供したりする動作 %>
     <script>
-      function Update()
-      {
-          .withSuccessHandler(
-            function(theID)
-            {
-              var theURL = pdf-id-link;
-              //ソースURLが異なる場合に実行する
-              if (document.getElementById("content").getAttribute("src") != theURL)
-              {
-                document.getElementById("content").setAttribute("src", theURL);
-              }
-            })
-          .withFailureHandler(
-            function()
-            {
-            })
-          .GetContentID(thePage);
-      }
+    //ページロード完了時に関数を実行する
+    document.addEventListener("DOMContentLoaded", function() {
+        // Pusherのインスタンスを作成
+        var pusher = new Pusher('32f2640be6b94e4b6afe', {
+        cluster: 'ap3'
+        });
+        //my-channel:サブスクライブ（このチャンネルのevent通知をうけとる）
+        var channel = pusher.subscribe('my-channel');
+        //my-event:`my-channel`の要素（dataはイベントと共に送信されたデータ）：`data.message`にPDFのURL
+        channel.bind('my-event', function(data) {
+            
+        // 受け取ったPDFのURLをiframeのsrc属性に設定
+        //ID:`content`（`iframe`:`src`属性):受け取った`data.message`（PDFのURL）に設定。これにより、`iframe`で指定されたURLのコンテンツが表示されます。
+        document.getElementById('content').src = data.message;
 
-      window.onload = function()
-      {
-        Update();
-        setInterval(Update, 60000);
-      }
+        });
+    });
     </script>
   </body>
 </html>
+
+
