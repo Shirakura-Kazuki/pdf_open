@@ -60,3 +60,261 @@ GASコードは、特定のフォルダからファイルを探し、その内�
 RailsコードはこのAPIを利用して、ファイルをダウンロードします。
 
 このような構成は、例えば企業内で特定のドキュメントを安全に配布するようなケースで有用です。GASがGoogle Drive内のファイルアクセスを制御し、Railsアプリはそれを利用者に配布する役割を果たします。
+
+
+
+`download.rb` の中で環境変数 `ENV['KEYCODE']` と `ENV['MODIFIED_URL']` を読み取っているので、それらを使用して HTTP POST リクエストを行うことができます。
+
+`{keycode:'download_SO1AZAhF9C1o7kaB52CK', id:'1Cb3pJG-8A6LCY8XvlXl_vgCjPk9OoJxu'}.to_json` の部分を `{keycode: keycode, id: modified_url}.to_json` に変更すれば、環境変数から読み取った値が使用されるようになります。
+
+以下が修正後の `download.rb` の一部です。
+
+```ruby
+keycode = ENV['KEYCODE']
+modified_url = ENV['MODIFIED_URL']
+
+response = Net::HTTP.post(
+    URI('https://script.google.com/macros/s/AKfycbzo7SHpPmcN0wcaicmINs2o5nesndA0hoNKSLSwPao98MrUFqY-mcxnHm3u5M1IF526/exec'),
+    {keycode: keycode, id: modified_url}.to_json,
+    'Content-Type' => 'application/json'
+)
+```
+
+この修正で、`home_controller.rb` から設定した環境変数が `download.rb` で正しく使用されるはずです。
+
+ただし、この変更を有効にするためには、`home_controller.rb` の `system` コマンドの前に環境変数を設定する必要があります。
+
+```ruby
+# home_controller.rb
+def open_pdf
+    # (略)
+    
+    ENV['KEYCODE'] = @keycode
+    ENV['MODIFIED_URL'] = @modified_url
+    
+    system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
+    
+    # (略)
+end
+```
+
+これで、`@keycode` と `@modified_url` の値が `download.rb` に渡されるようになります。
+
+
+エラーメッセージにはいくつかのポイントがあります：
+
+1. `redirect!`：リダイレクトが発生していますが、その後の処理がどうなっているかは不明です。
+2. `invalid_file_id`：ファイルIDが無効であるというメッセージが出ています。
+3. `undefined method 'unpack1' for nil:NilClass (NoMethodError)`：`Base64.decode64` メソッドで `nil` が渡されているようです。
+
+### 解決方法：
+
+1. **リダイレクトの処理**: リダイレクトが正しく処理されているか確認してください。
+  
+2. **無効なファイルID**: `invalid_file_id` というエラーメッセージが出ているので、渡しているファイルIDが正しいか確認してください。
+  
+3. **Base64デコードのエラー**: `Base64.decode64` メソッドで `nil` が渡されている可能性があります。`response.body` が正しく設定されているか、または `params['base64']` が `nil` でないか確認してください。
+
+### コードの修正：
+
+**`home_controller.rb`**:
+
+環境変数の設定を `system` メソッドの前に移動してみてください。
+
+```ruby
+# ...
+def open_pdf
+    # ...
+    ENV['KEYCODE'] = @keycode
+    ENV['MODIFIED_URL'] = @modified_url
+    system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
+    # ...
+end
+# ...
+```
+
+**`download.rb`**:
+
+エラーチェックを追加してみてください。
+
+```ruby
+# ...
+if response.nil? || response.body.nil?
+    puts 'ERROR: Response is nil'
+    return
+end
+
+params = JSON.parse(response.body)
+
+if params['base64'].nil?
+    puts 'ERROR: base64 is nil'
+    return
+end
+
+puts params['message']
+
+File.open("download.pdf", "wb") do |file|
+    file.write(Base64.decode64(params['base64']))
+end
+# ...
+```
+
+これで、具体的なエラーが何かわかるはずです。それによって、次のステップを考えられるでしょう。
+
+
+
+
+ダウンロードしたPDFファイルをRailsのViewで表示するにはいくつかの方法がありますが、
+一つの簡単な方法は、ダウンロードしたPDFファイルを公開できる場所に保存し、そのURLを`iframe`で表示することです。
+
+### 手順
+
+1. **ダウンロードしたPDFを保存**: ダウンロードしたPDFファイルをサーバー上の公開フォルダ（通常`public`フォルダ）に保存します。この保存場所のURLが得られるので、それをViewに渡します。
+
+    ```ruby
+    # ファイルに保存
+    public_path = Rails.root.join('public', 'download.pdf')
+    File.open(public_path, "wb") do |file|
+        file.write(Base64.decode64(params['base64']))
+    end
+    ```
+
+2. **URLをViewに渡す**: ファイルが保存されたURLをRailsのコントローラーからViewに渡します。この例では、`@pdf_url`というインスタンス変数を用います。
+
+    ```ruby
+    @pdf_url = "/download.pdf"
+    ```
+
+3. **ViewでPDFを表示**: `iframe`の`src`属性に`@pdf_url`を設定します。
+
+    ```html.erb
+    <iframe id="content" src="<%= @pdf_url %>"></iframe>
+    ```
+
+この手順により、ダウンロードしたPDFファイルが`public`フォルダ内に保存され、そのURLが`iframe`によって表示されます。もしPDFのURLが動的に変わる場合は、JavaScriptを用いて`iframe`の`src`属性を動的に更新することもできます。
+
+注意: この方法はローカル開発やデモには適していますが、本番環境でのファイルの公開にはセキュリティの観点から適していない場合があります。公開するファイルによっては、認証や権限管理が必要かもしれません。
+
+
+Rubyの文字列リテラル内でバックスラッシュ（`\`）を使用する場合は、二重引用符（`"`）かシングル引用符（`'`）で囲む必要があります。また、ファイルパスにバックスラッシュを使う場面では、通常それをエスケープする必要があります（`\\`とする）。このため、以下のようにコードを修正してください。
+
+```ruby
+# これは正しくない
+# File.open(C:\Users\s_k_t\pusher_test1010_app\public, "wb") do |file|
+
+# これは正しい
+File.open("C:\\Users\\s_k_t\\pusher_test1010_app\\public\\download.pdf", "wb") do |file|
+    file.write(Base64.decode64(params['base64']))
+end
+```
+
+もしくは、Rubyの`File.join`メソッドを使ってOSに依存しない形でパスを生成することもできます。
+
+```ruby
+file_path = File.join('C:', 'Users', 's_k_t', 'pusher_test1010_app', 'public', 'download.pdf')
+File.open(file_path, "wb") do |file|
+    file.write(Base64.decode64(params['base64']))
+end
+```
+
+これで、指定したパスにPDFファイルが保存されるはずです。注意として、この場所に書き込む権限が必要です。権限がない場合は、ファイルの保存に失敗します。
+
+`download.rb` スクリプトが独立して実行されている場合、`Rails` オブジェクトは初期化されていないため、このようなエラーが出ます。
+
+この問題を解決するための一般的な方法は以下のとおりです：
+
+1. `ENV` 環境変数を使ってパスを渡す。
+2. 独立したスクリプトとしてではなく、Rails アプリケーションの一部としてこのコードを実行する。
+
+### 方法1: `ENV` 環境変数を使用
+
+`HomeController` の `open_pdf` メソッドで環境変数を設定することができます。
+
+```ruby
+# home_controller.rb
+def open_pdf
+    # ...（略）...
+    ENV['DOWNLOAD_PATH'] = Rails.root.join('public', 'download.pdf').to_s
+    system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
+end
+```
+
+そして `download.rb` でこの環境変数を読み取ります。
+
+```ruby
+# download.rb
+download_path = ENV['DOWNLOAD_PATH']
+File.open(download_path, "wb") do |file|
+    file.write(Base64.decode64(params['base64']))
+end
+```
+
+### 方法2: Rails アプリケーションの一部として実行
+
+`HomeController` の中で直接このコードを実行することもできます。この場合、`Rails.root` は利用可能です。
+
+```ruby
+# home_controller.rb
+def open_pdf
+    # ...（略）...
+    download_path = Rails.root.join('public', 'download.pdf')
+    File.open(download_path, "wb") do |file|
+        file.write(Base64.decode64(params['base64']))
+    end
+end
+```
+
+この方法を選ぶ場合、`download.rb` のコードを `HomeController` に組み込む必要があります。
+
+どちらの方法が適しているかは、プロジェクトの要件によります。一般的には、コードが Rails アプリケーションと密接に関連している場合は、そのコードを Rails アプリケーション内に置く方が管理が容易です。
+
+
+
+`Rails.root.join('public', 'download.pdf').to_s` は、Railsアプリケーションのルートディレクトリからの相対パスを表します。このコードが実行されると、フルパス（例：`C:\Users\s_k_t\pusher_test1010_app\public\download.pdf`）が生成されます。
+
+`Rails.root` は、Railsアプリケーションのルートディレクトリ（この場合は `C:\Users\s_k_t\pusher_test1010_app`）を指すので、`public` フォルダへのフルパスは `Rails.root.join('public', 'download.pdf').to_s` によって自動的に計算されます。
+
+したがって、`C:\Users\s_k_t\pusher_test1010_app\public` を明示的に書く必要はありません。この方法が便利なのは、アプリケーションが異なる環境（開発、テスト、本番など）で実行される場合でも、このコードが正しく動作するようになるからです。
+
+以下のように `ENV['DOWNLOAD_PATH']` にこのフルパスを設定することで、`download.rb` スクリプト内で `ENV['DOWNLOAD_PATH']` を使用してその場所にファイルを保存できます。
+
+```ruby
+# home_controller.rb
+def open_pdf
+    # ...（略）...
+    ENV['DOWNLOAD_PATH'] = Rails.root.join('public', 'download.pdf').to_s
+    system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
+end
+```
+
+そして `download.rb` でこの環境変数を使用します。
+
+```ruby
+# download.rb
+download_path = ENV['DOWNLOAD_PATH']
+File.open(download_path, "wb") do |file|
+    file.write(Base64.decode64(params['base64']))
+end
+```
+
+このようにすることで、`download.rb` は `ENV['DOWNLOAD_PATH']` に保存されたパスにファイルを保存します。
+
+
+
+
+
+### 保存先がパブリックである理由
+
+Railsの`public`ディレクトリは、静的なファイル（HTML、CSS、画像、PDFなど）を格納するための場所です。このディレクトリ内のファイルは、Webサーバーによって直接公開されます。つまり、外部からアクセス可能で、特定のURLによって直接参照できます。
+
+一般に、ダウンロードや表示が必要なファイルを外部に公開する場合、`public`ディレクトリを使うことが多いです。ただし、セキュリティが重要な場合（例：認証が必要なファイル）は、`public`ディレクトリを使わずに、コントローラーを通じてファイルを提供する方法もあります。
+
+### エンコーダーについて
+
+エンコーダー（Encoder）は、データをある形式から別の形式に変換するプログラムまたはデバイスを指します。このコンテキストでの「エンコーダー」は、Base64エンコーディングを指している可能性が高いです。
+
+Base64エンコーディングは、バイナリデータをASCII（基本的な文字コード）のテキスト形式に変換する手法の一つです。このエンコーディングは、バイナリデータをテキスト形式で安全に送受信する必要がある場合（例：電子メール）によく使用されます。
+
+Rubyでは、`Base64`モジュールを使ってこのようなエンコーディングとデコーディングを行います。例えば、`Base64.encode64('Hello, world!')`で文字列をBase64でエンコードし、`Base64.decode64(encoded_string)`でエンコードされた文字列をデコードできます。
+
+このエンコーディングとデコーディングの過程で、「エンコーダー」がデータを一つの形式から別の形式に変換します。この場合、Base64エンコーダーがバイナリデータをASCIIテキストに、デコーダーがASCIIテキストを元のバイナリデータに戻します。
