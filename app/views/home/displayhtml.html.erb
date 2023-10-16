@@ -1,0 +1,58 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height:100vh;
+      }
+      iframe {
+        border:none;
+        width:100%;
+        height:100%;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 初期値として指定されたURLをsrc属性に設定 -->
+    <iframe id="content" src="https://drive.google.com/file/d/1iZnyc-l0SIIwhd78N7Dd2593Soilqggs/preview"></iframe>
+    
+    <%# Pusherを通じてリアルタイムにPDFのURLを受け取り、そのURLをページ内の特定の要素に適用して、PDFを表示したり、リンクとして提供したりする動作 %>
+    <script>
+    //ページロード完了時に関数を実行する
+    document.addEventListener("DOMContentLoaded", function() {
+        // Pusherのインスタンスを作成
+        var pusher = new Pusher('32f2640be6b94e4b6afe', {
+        cluster: 'ap3'
+        });
+        //my-channel:サブスクライブ（このチャンネルのevent通知をうけとる）
+        var channel = pusher.subscribe('my-channel');
+        //my-event:`my-channel`の要素（dataはイベントと共に送信されたデータ）：`data.message`にPDFのURL
+        channel.bind('my-event', function(data) {
+            
+        // 受け取ったPDFのURLをiframeのsrc属性に設定
+        //ID:`content`（`iframe`:`src`属性):受け取った`data.message`（PDFのURL）に設定。これにより、`iframe`で指定されたURLのコンテンツが表示されます。
+        document.getElementById('content').src = data.message;
+
+        });
+    });
+    </script>
+  </body>
+</html>
+
+
+
+<!-- JavaScript to delete the PDF after 5 minutes -->
+<script>
+  window.onload = function() {
+    setTimeout(function(){
+      fetch('/delete_pdf', {
+        method: 'DELETE'
+      });
+    }, 60000); // 5 minutes
+  };
+</script>

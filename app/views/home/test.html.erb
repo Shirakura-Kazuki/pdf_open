@@ -1,320 +1,964 @@
-### Railsコード
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height:100vh;
+      }
+      iframe {
+        border:none;
+        width:100%;
+        height:100%;
+      }
+    </style>
+  </head>
 
-#### require 'net/http', 'uri', 'json', "base64"
-外部ライブラリを読み込む。
-HTTPリクエスト、URI解析、JSON処理、Base64エンコーディング・デコーディングに必要。
+  <body>
+    <!-- 新しいコード：public/temp/download.pdfをiframeで表示、存在しない場合はdefault.pdfを表示 -->
+  <%# <iframe id="newPdfFrame" src="/temp/download.pdf" onerror="this.onerror=null; this.src='/temp/default.pdf'" width="600" height="500"></iframe> %>
+  <%# <iframe id="newPdfFrame" src="/temp/default.pdf" width="600" height="500"></iframe> %>
 
-#### response = Net::HTTP.post(...)
-Google Apps ScriptのWeb APIに対してHTTP POSTリクエストを送る。
+  <script>
+    // PDFの再読み込みと削除処理
+    window.onload = function() {
+      setTimeout(function(){
+        fetch('/delete_pdf', {
+          method: 'DELETE'
+        })
+        .then(() => {
+          // PDFを再読み込み
+          document.getElementById("newPdfFrame").src = "/temp/download.pdf";
+        })
+        .catch(() => {
+          // エラーが発生した場合は、default.pdfを表示
+          document.getElementById("newPdfFrame").src = "/temp/default.pdf";
+        });
+      }, 60000); // 5分後
+    };
+  </script>
 
-#### case response when Net::HTTPSuccess
-HTTPステータスコードが成功を示す場合、何もしない。
-
-#### when Net::HTTPRedirection
-HTTPステータスコードがリダイレクトを示す場合、新しい場所にリダイレクト。
-
-#### else
-その他の場合、`response`を`nil`に設定。
-
-#### if response.nil?
-`response`が`nil`の場合、エラーとして処理。
-
-#### params = JSON.parse(response.body)
-HTTPレスポンスボディをJSONとして解析。
-
-#### File.open("download.pdf", "wb") do |file|
-Base64でエンコードされたPDFファイルをデコードし、ローカルに保存。
-
-### Google Apps Script（GAS）コード
-
-#### let POST_KEY_CODE = "download_SO1AZAhF9C1o7kaB52CK";
-認証用のキーコードを設定。
-
-#### let FOLDER_ID = "1qMCKoU4G2PlrsWgVVtaX4Na2dHur8i92";
-Google Driveの特定のフォルダID。
-
-#### function doPost(inPost)
-外部からのPOSTリクエストを受け取る関数。
-
-#### if (theInJson.keycode != POST_KEY_CODE)
-認証キーが一致しない場合、`access_denied`と返す。
-
-#### HandleFile(theInJson.id, theOutJson)
-ファイル処理を行う関数を呼び出す。
-
-#### function HandleFile(inID, inOutJson)
-指定されたIDのファイルをBase64でエンコード。
-
-#### function FindFile(inFolderID, inID)
-指定されたフォルダIDとファイルIDからファイルを検索。
-
-#### function CreateJsonOutput(inJson)
-JSON形式でレスポンスを作成。
-
-#### function test1()
-テスト関数。`HandleFile`関数をテスト。
-
-### どのような機能か、なぜ必要か
-Railsコードは、Google Driveから特定のPDFファイルをダウンロードするためのものです。
-GASコードは、特定のフォルダからファイルを探し、その内容をBase64エンコードして返すAPIを提供しています。
-RailsコードはこのAPIを利用して、ファイルをダウンロードします。
-
-このような構成は、例えば企業内で特定のドキュメントを安全に配布するようなケースで有用です。GASがGoogle Drive内のファイルアクセスを制御し、Railsアプリはそれを利用者に配布する役割を果たします。
-
-
-
-`download.rb` の中で環境変数 `ENV['KEYCODE']` と `ENV['MODIFIED_URL']` を読み取っているので、それらを使用して HTTP POST リクエストを行うことができます。
-
-`{keycode:'download_SO1AZAhF9C1o7kaB52CK', id:'1Cb3pJG-8A6LCY8XvlXl_vgCjPk9OoJxu'}.to_json` の部分を `{keycode: keycode, id: modified_url}.to_json` に変更すれば、環境変数から読み取った値が使用されるようになります。
-
-以下が修正後の `download.rb` の一部です。
-
-```ruby
-keycode = ENV['KEYCODE']
-modified_url = ENV['MODIFIED_URL']
-
-response = Net::HTTP.post(
-    URI('https://script.google.com/macros/s/AKfycbzo7SHpPmcN0wcaicmINs2o5nesndA0hoNKSLSwPao98MrUFqY-mcxnHm3u5M1IF526/exec'),
-    {keycode: keycode, id: modified_url}.to_json,
-    'Content-Type' => 'application/json'
-)
-```
-
-この修正で、`home_controller.rb` から設定した環境変数が `download.rb` で正しく使用されるはずです。
-
-ただし、この変更を有効にするためには、`home_controller.rb` の `system` コマンドの前に環境変数を設定する必要があります。
-
-```ruby
-# home_controller.rb
-def open_pdf
-    # (略)
-    
-    ENV['KEYCODE'] = @keycode
-    ENV['MODIFIED_URL'] = @modified_url
-    
-    system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
-    
-    # (略)
-end
-```
-
-これで、`@keycode` と `@modified_url` の値が `download.rb` に渡されるようになります。
-
-
-エラーメッセージにはいくつかのポイントがあります：
-
-1. `redirect!`：リダイレクトが発生していますが、その後の処理がどうなっているかは不明です。
-2. `invalid_file_id`：ファイルIDが無効であるというメッセージが出ています。
-3. `undefined method 'unpack1' for nil:NilClass (NoMethodError)`：`Base64.decode64` メソッドで `nil` が渡されているようです。
-
-### 解決方法：
-
-1. **リダイレクトの処理**: リダイレクトが正しく処理されているか確認してください。
+  <%# Pusherを通じてリアルタイムにPDFのURLを受け取り、そのURLをページ内の特定の要素に適用して、PDFを表示したり、リンクとして提供したりする動作 %>
+      <iframe id="content" src="https://drive.google.com/file/d/1iZnyc-l0SIIwhd78N7Dd2593Soilqggs/preview"></iframe>
   
-2. **無効なファイルID**: `invalid_file_id` というエラーメッセージが出ているので、渡しているファイルIDが正しいか確認してください。
-  
-3. **Base64デコードのエラー**: `Base64.decode64` メソッドで `nil` が渡されている可能性があります。`response.body` が正しく設定されているか、または `params['base64']` が `nil` でないか確認してください。
+   
+   <script>
+    <script>
+        //ページロード完了時に関数を実行する
+        document.addEventListener("DOMContentLoaded", function() {
+            // Pusherのインスタンスを作成
+            var pusher = new Pusher('32f2640be6b94e4b6afe', {
+            cluster: 'ap3'
+            });
+            //my-channel:サブスクライブ（このチャンネルのevent通知をうけとる）
+            var channel = pusher.subscribe('my-channel');
+            //my-event:`my-channel`の要素（dataはイベントと共に送信されたデータ）：`data.message`にPDFのURL
+            channel.bind('my-event', function(data) {
+                
+            // 受け取ったPDFのURLをiframeのsrc属性に設定
+            document.getElementById('content').src = data.message;
 
-### コードの修正：
+            // 通知を表示（例：alert box）
+            alert("新しいPDFがあります");
 
-**`home_controller.rb`**:
+            // 5秒後に通知を消す
+            setTimeout(function() {
+                // ここに通知を消すためのコードを書く
+                // 例：alert boxなら何もしなくて良い
+            }, 5000);  // 5000ミリ秒＝5秒
 
-環境変数の設定を `system` メソッドの前に移動してみてください。
+            });
+        });
+    </script>
 
-```ruby
-# ...
-def open_pdf
-    # ...
-    ENV['KEYCODE'] = @keycode
-    ENV['MODIFIED_URL'] = @modified_url
-    system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
-    # ...
-end
-# ...
+
+    </body>
+</html>
+
+
+
+
+
+
+    <!--
+    <-- 初期値として指定されたURLをsrc属性に設定 
+    <iframe id="content" src="https://drive.google.com/file/d/1iZnyc-l0SIIwhd78N7Dd2593Soilqggs/preview"></iframe>
+    
+    <%# Pusherを通じてリアルタイムにPDFのURLを受け取り、そのURLをページ内の特定の要素に適用して、PDFを表示したり、リンクとして提供したりする動作 %>
+    <script>
+    //ページロード完了時に関数を実行する
+    document.addEventListener("DOMContentLoaded", function() {
+        // Pusherのインスタンスを作成
+        var pusher = new Pusher('32f2640be6b94e4b6afe', {
+        cluster: 'ap3'
+        });
+        //my-channel:サブスクライブ（このチャンネルのevent通知をうけとる）
+        var channel = pusher.subscribe('my-channel');
+        //my-event:`my-channel`の要素（dataはイベントと共に送信されたデータ）：`data.message`にPDFのURL
+        channel.bind('my-event', function(data) {
+            
+        // 受け取ったPDFのURLをiframeのsrc属性に設定
+        //ID:`content`（`iframe`:`src`属性):受け取った`data.message`（PDFのURL）に設定。これにより、`iframe`で指定されたURLのコンテンツが表示されます。
+        document.getElementById('content').src = data.message;
+
+        });
+    });
+    </script>
+    -->
+
+    <!-- 既存のコード -->
+<%# ... ここに既存のコードが続く ... %>
+
+<!-- 新しいコード：public/temp/download.pdfをiframeで表示 -->
+<%# <iframe id="newPdfFrame" src="/temp/download.pdf" width="600" height="500"></iframe> %>
+
+
+
+
+
+<!-- JavaScript to delete the PDF after 5 minutes 
+<script>
+  window.onload = function() {
+    setTimeout(function(){
+      fetch('/delete_pdf', {
+        method: 'DELETE'
+      });
+    }, 60000); // 5 minutes
+  };
+</script>
+
+-->
+
+
+
+
+
+
+
+<!--
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <base target="_top">
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          height:100vh;
+        }
+        iframe {
+          border:none;
+          width:100%;
+          height:100%;
+        }
+      </style>
+    </head>
+    <body>
+-->
+      <!-- 初期値として指定されたURLをsrc属性に設定 
+      <iframe id="content" src="https://drive.google.com/file/d/1iZnyc-l0SIIwhd78N7Dd2593Soilqggs/preview"></iframe>
+      
+      <%# Pusherを通じてリアルタイムにPDFのURLを受け取り、そのURLをページ内の特定の要素に適用して、PDFを表示したり、リンクとして提供したりする動作 %>
+      <script>
+      //ページロード完了時に関数を実行する
+      document.addEventListener("DOMContentLoaded", function() {
+          // Pusherのインスタンスを作成
+          var pusher = new Pusher('32f2640be6b94e4b6afe', {
+          cluster: 'ap3'
+          });
+          //my-channel:サブスクライブ（このチャンネルのevent通知をうけとる）
+          var channel = pusher.subscribe('my-channel');
+          //my-event:`my-channel`の要素（dataはイベントと共に送信されたデータ）：`data.message`にPDFのURL
+          channel.bind('my-event', function(data) {
+              
+          // 受け取ったPDFのURLをiframeのsrc属性に設定
+          //ID:`content`（`iframe`:`src`属性):受け取った`data.message`（PDFのURL）に設定。これにより、`iframe`で指定されたURLのコンテンツが表示されます。
+          document.getElementById('content').src = data.message;
+
+          });
+      });
+      </script>
+    </body>
+  </html>
+  -->
+
+// webリサーチ
+
+#### fetch部分
+
+```javascript
+fetch('/delete_pdf', {
+  method: 'DELETE'
+})
 ```
 
-**`download.rb`**:
+- 
 
-エラーチェックを追加してみてください。
+#### then部分
 
-```ruby
-# ...
-if response.nil? || response.body.nil?
-    puts 'ERROR: Response is nil'
-    return
-end
-
-params = JSON.parse(response.body)
-
-if params['base64'].nil?
-    puts 'ERROR: base64 is nil'
-    return
-end
-
-puts params['message']
-
-File.open("download.pdf", "wb") do |file|
-    file.write(Base64.decode64(params['base64']))
-end
-# ...
+```javascript
+.then(() => {
+  // PDFを再読み込み
+  document.getElementById("newPdfFrame").src = "/temp/download.pdf";
+})
 ```
 
-これで、具体的なエラーが何かわかるはずです。それによって、次のステップを考えられるでしょう。
+- `.then()`は、`fetch()`でのリクエストが成功した場合に実行される処理を指定します。
+- `document.getElementById("newPdfFrame").src = "/temp/download.pdf";`: IDが`newPdfFrame`の`iframe`の`src`属性を`/temp/download.pdf`に変更して、新しいPDFを読み込みます。
+
+#### catch部分
+
+```javascript
+.catch(() => {
+  // エラーが発生した場合は、default.pdfを表示
+  document.getElementById("newPdfFrame").src = "/temp/default.pdf";
+});
+```
+
+- `.catch()`は、`fetch()`でのリクエストが失敗した場合に実行される処理を指定します。
+- エラーが発生した場合、IDが`newPdfFrame`の`iframe`の`src`属性を`/temp/default.pdf`に設定して、デフォルトのPDFを表示します。
+
+このスクリプトは、ページが読み込まれた1分後に`/delete_pdf`へDELETEリクエストを送り、成功すれば新しいPDFを、失敗すればデフォルトのPDFを`iframe`に表示するという動きをしま
+
+
+了解しました。順序を逆にするには、JavaScriptの`Promise`を使って、PDFの読み込みや表示が完了した後に`/delete_pdf`への呼び出しを行うようにコードを変更できます。
+
+以下は、そのように変更したコードの例です。
+
+```html
+<iframe id="content" src='/temp/default.pdf'></iframe>
+<script>
+  // PDFの再読み込みと削除処理
+  window.onload = function() {
+    setTimeout(function(){
+      // 先にPDFを再読み込みか、default.pdfを表示
+      let newPdfFrame = document.getElementById("content"); // HTMLのiframeのIDを"content"に合わせました
+      newPdfFrame.src = "/temp/download.pdf"; // ここでは仮に新しいPDFを読み込むとしています
+      
+      // PDFの読み込みが完了したら、次の処理に移る
+      newPdfFrame.onload = function() {
+        // (/delete_pdf):リクエスト送信：DELETEメソッドであることを指定しています。
+        fetch('/delete_pdf', {
+          method: 'DELETE'
+        })
+        .then(() => {
+          console.log("delete_pdf成功");
+        })
+        .catch(() => {
+          console.log("delete_pdf失敗");
+        });
+      };
+
+    }, 60000); // 1分後
+  };
+</script>
+```
+
+このコードでは以下の順序で動作します：
+
+1. ページが読み込まれた1分後に、新しいPDF (`/temp/download.pdf`) を`iframe`に読み込む。
+2. 新しいPDFが`iframe`に読み込まれたら、`/delete_pdf`へDELETEリクエストを送る。
+
+このようにすることで、`/delete_pdf`の呼び出しは、PDFの読み込みが完了した後に行われます。
+
+
+
+/////////////////////////////////////////////////////////10/16
+
+了解しました。`iframe`の`src`属性を動的に変更するためには、JavaScriptを使って条件に応じて`src`の値を変更する必要があります。
+
+以下のコードは、そのように修正したものです。
+
+```html
+<iframe id="content" src='/temp/default.pdf'></iframe>
+<script>
+  // PDFの表示と削除処理
+  window.onload = function() {
+    // iframe要素を取得
+    let contentFrame = document.getElementById("content");
+
+    // 初期表示は/temp/default.pdf
+    contentFrame.src = "/temp/default.pdf";
+
+    // 1分後に実行する処理
+    setTimeout(function() {
+      // 仮にdownload.pdfが生成されたと仮定して、iframeのsrcを変更
+      contentFrame.src = "/temp/download.pdf";
+
+      // download.pdfがiframeに読み込まれたら、次の処理に移る
+      contentFrame.onload = function() {
+        // (/delete_pdf): DELETEメソッドでリクエスト送信
+        fetch('/delete_pdf', {
+          method: 'DELETE'
+        })
+        .then(() => {
+          console.log("delete_pdf成功");
+        })
+        .catch(() => {
+          console.log("delete_pdf失敗");
+          // エラーが発生した場合は、default.pdfを再表示
+          contentFrame.src = "/temp/default.pdf";
+        });
+      };
+    }, 60000); // 1分後
+  };
+</script>
+```
+
+このコードでは以下の順序で動作します：
+
+1. ページが読み込まれたら、`/temp/default.pdf`を`iframe`に読み込む。
+2. 1分後、`/temp/download.pdf`を`iframe`に読み込む。
+3. `/temp/download.pdf`が`iframe`に読み込まれたら、`/delete_pdf`へDELETEリクエ
+
+
+
+// 
+   <!-- URL受け渡しversion -->
+    <%# <script>
+        //ページロード完了時に関数を実行する
+        document.addEventListener("DOMContentLoaded", function() {
+            // Pusherのインスタンスを作成
+            var pusher = new Pusher('32f2640be6b94e4b6afe', {
+            cluster: 'ap3'
+            });
+            //my-channel:サブスクライブ（このチャンネルのevent通知をうけとる）
+            var channel = pusher.subscribe('my-channel');
+            //my-event:`my-channel`の要素（dataはイベントと共に送信されたデータ）：`data.message`にPDFのURL
+            channel.bind('my-event', function(data) {
+                
+            // 受け取ったPDFのURLをiframeのsrc属性に設定
+            document.getElementById('content').src = data.message;
+
+            // 通知を表示（例：alert box）
+            alert("新しいPDFがあります");
+
+            // 5秒後に通知を消す
+            setTimeout(function() {
+                // ここに通知を消すためのコードを書く
+                // 例：alert boxなら何もしなくて良い
+            }, 5000);  // 5000ミリ秒＝5秒
+
+            });
+        });
+    </script> %>
+      
+    <%# // delete_pdf:iframe表示後download.pdfを削除する。
+    <script>
+      window.onload = function() {
+        setTimeout(function(){
+          fetch('/delete_pdf', {
+            method: 'DELETE'
+          });
+        }, 300000); // 5 minutes
+      };
+    </script> %>
 
 
 
 
-ダウンロードしたPDFファイルをRailsのViewで表示するにはいくつかの方法がありますが、
-一つの簡単な方法は、ダウンロードしたPDFファイルを公開できる場所に保存し、そのURLを`iframe`で表示することです。
 
-### 手順
+<%# 最新 %>
+<%# <iframe id="content" src='/temp/default.pdf'></iframe>
+    <script>
+          puts "settime_off"
+        window.onload = function() {
+        setTimeout(function(){
+          puts "settime_on"
+          // 先にPDFを再読み込みか、default.pdfを表示
+          let newPdfFrame = document.getElementById("content"); // HTMLのiframeのIDを"content"に合わせました
+          newPdfFrame.src = "/temp/download.pdf"; // ここでは仮に新しいPDFを読み込むとしています
+          
+          PDFの読み込みが完了したら、次の処理に移る
+          newPdfFrame.onload = function() {
+            (/delete_pdf):リクエスト送信：DELETEメソッドであることを指定しています。
+            fetch('/delete_pdf', {
+              method: 'DELETE'
+            })
+            .then(() => {
+              console.log("delete_pdf成功");
+            })
+            .catch(() => {
+              console.log("delete_pdf失敗");
+            });
+          // };
 
-1. **ダウンロードしたPDFを保存**: ダウンロードしたPDFファイルをサーバー上の公開フォルダ（通常`public`フォルダ）に保存します。この保存場所のURLが得られるので、それをViewに渡します。
+        }, 10000); // 1分後
+      };
+    </script> %>
+
+
+
+
+    ・・・・・・・・・・・・・・・・・・・
+    2回目以降の動作が期待通りでないということですね。問題の原因はいくつか考えられますが、一つの可能性としてJavaScriptの`setTimeout`が一度しか実行されない点が挙げられます。
+
+`setTimeout`は指定した時間が経過した後に一度だけ関数を実行します。繰り返し何かを実行したい場合は、`setInterval`を使用するか、`setTimeout`を再帰的に呼び出す必要があります。
+
+以下のコードは`setInterval`を使用して1分ごとにPDFの表示と削除処理を繰り返すように修正したものです。
+
+```html
+<iframe id="content" src='/temp/default.pdf'></iframe>
+<script>
+  // PDFの表示と削除処理
+  window.onload = function() {
+    // iframe要素を取得
+    let contentFrame = document.getElementById("content");
+
+    // 初期表示は/temp/default.pdf
+    contentFrame.src = "/temp/default.pdf";
+
+    // 1分ごとに実行する処理
+    setInterval(function() {
+      // 仮にdownload.pdfが生成されたと仮定して、iframeのsrcを変更
+      contentFrame.src = "/temp/download.pdf";
+
+      // download.pdfがiframeに読み込まれたら、次の処理に移る
+      contentFrame.onload = function() {
+        // (/delete_pdf): DELETEメソッドでリクエスト送信
+        fetch('/delete_pdf', {
+          method: 'DELETE'
+        })
+        .then(() => {
+          console.log("delete_pdf成功");
+        })
+        .catch(() => {
+          console.log("delete_pdf失敗");
+          // エラーが発生した場合は、default.pdfを再表示
+          contentFrame.src = "/temp/default.pdf";
+        });
+      };
+    }, 60000); // 1分ごと
+  };
+</script>
+```
+
+この修正が期待通りの動作をするかどうかお試しください。
+
+
+//////////////////////////
+
+Railsアプリケーションでは、コントローラーとビューは非常に密接に連携して動作します。基本的な流れは以下の通りです。
+
+1. **ルーティング設定**: `config/routes.rb` ファイルでルート（URLとHTTPメソッドの組み合わせ）を設定します。
 
     ```ruby
-    # ファイルに保存
-    public_path = Rails.root.join('public', 'download.pdf')
-    File.open(public_path, "wb") do |file|
-        file.write(Base64.decode64(params['base64']))
+    # config/routes.rb
+    Rails.application.routes.draw do
+      get 'home/display', to: 'home#display'
     end
     ```
 
-2. **URLをViewに渡す**: ファイルが保存されたURLをRailsのコントローラーからViewに渡します。この例では、`@pdf_url`というインスタンス変数を用います。
+    この設定は、「`http://[ドメイン]/home/display` へのGETリクエストがきたら、`HomeController` の `display` アクションを呼び出せ」と指示しています。
+
+2. **コントローラーの作成**: 対応するコントローラーを作成または編集します。
 
     ```ruby
-    @pdf_url = "/download.pdf"
-    ```
-
-3. **ViewでPDFを表示**: `iframe`の`src`属性に`@pdf_url`を設定します。
-
-    ```html.erb
-    <iframe id="content" src="<%= @pdf_url %>"></iframe>
-    ```
-
-この手順により、ダウンロードしたPDFファイルが`public`フォルダ内に保存され、そのURLが`iframe`によって表示されます。もしPDFのURLが動的に変わる場合は、JavaScriptを用いて`iframe`の`src`属性を動的に更新することもできます。
-
-注意: この方法はローカル開発やデモには適していますが、本番環境でのファイルの公開にはセキュリティの観点から適していない場合があります。公開するファイルによっては、認証や権限管理が必要かもしれません。
-
-
-Rubyの文字列リテラル内でバックスラッシュ（`\`）を使用する場合は、二重引用符（`"`）かシングル引用符（`'`）で囲む必要があります。また、ファイルパスにバックスラッシュを使う場面では、通常それをエスケープする必要があります（`\\`とする）。このため、以下のようにコードを修正してください。
-
-```ruby
-# これは正しくない
-# File.open(C:\Users\s_k_t\pusher_test1010_app\public, "wb") do |file|
-
-# これは正しい
-File.open("C:\\Users\\s_k_t\\pusher_test1010_app\\public\\download.pdf", "wb") do |file|
-    file.write(Base64.decode64(params['base64']))
-end
-```
-
-もしくは、Rubyの`File.join`メソッドを使ってOSに依存しない形でパスを生成することもできます。
-
-```ruby
-file_path = File.join('C:', 'Users', 's_k_t', 'pusher_test1010_app', 'public', 'download.pdf')
-File.open(file_path, "wb") do |file|
-    file.write(Base64.decode64(params['base64']))
-end
-```
-
-これで、指定したパスにPDFファイルが保存されるはずです。注意として、この場所に書き込む権限が必要です。権限がない場合は、ファイルの保存に失敗します。
-
-`download.rb` スクリプトが独立して実行されている場合、`Rails` オブジェクトは初期化されていないため、このようなエラーが出ます。
-
-この問題を解決するための一般的な方法は以下のとおりです：
-
-1. `ENV` 環境変数を使ってパスを渡す。
-2. 独立したスクリプトとしてではなく、Rails アプリケーションの一部としてこのコードを実行する。
-
-### 方法1: `ENV` 環境変数を使用
-
-`HomeController` の `open_pdf` メソッドで環境変数を設定することができます。
-
-```ruby
-# home_controller.rb
-def open_pdf
-    # ...（略）...
-    ENV['DOWNLOAD_PATH'] = Rails.root.join('public', 'download.pdf').to_s
-    system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
-end
-```
-
-そして `download.rb` でこの環境変数を読み取ります。
-
-```ruby
-# download.rb
-download_path = ENV['DOWNLOAD_PATH']
-File.open(download_path, "wb") do |file|
-    file.write(Base64.decode64(params['base64']))
-end
-```
-
-### 方法2: Rails アプリケーションの一部として実行
-
-`HomeController` の中で直接このコードを実行することもできます。この場合、`Rails.root` は利用可能です。
-
-```ruby
-# home_controller.rb
-def open_pdf
-    # ...（略）...
-    download_path = Rails.root.join('public', 'download.pdf')
-    File.open(download_path, "wb") do |file|
-        file.write(Base64.decode64(params['base64']))
+    # app/controllers/home_controller.rb
+    class HomeController < ApplicationController
+      def display
+        # 何らかの処理
+      end
     end
-end
-```
+    ```
 
-この方法を選ぶ場合、`download.rb` のコードを `HomeController` に組み込む必要があります。
+    `display` メソッドがアクションです。このアクションが呼び出されると、Railsは自動的に同名のビューファイル（この場合は `display.html.erb`）を探します。
 
-どちらの方法が適しているかは、プロジェクトの要件によります。一般的には、コードが Rails アプリケーションと密接に関連している場合は、そのコードを Rails アプリケーション内に置く方が管理が容易です。
+3. **ビューの作成**: 対応するビューファイル（ERBファイル）を `app/views/home` ディレクトリ内に作成します。
+
+    ```
+    <!-- app/views/home/display.html.erb -->
+    <!-- ここにHTMLとERBタグを書く -->
+    ```
+
+以上の設定が完了すれば、`http://[ドメイン]/home/display` にアクセスすると、`HomeController` の `display` アクションが呼び出され、`app/views/home/display.html.erb` ファイルがレンダリングされます。
+
+この仕組みを利用して、ERBファイルを適切に表示することができます。何か不明点があれば、どうぞご質問ください。
 
 
 
-`Rails.root.join('public', 'download.pdf').to_s` は、Railsアプリケーションのルートディレクトリからの相対パスを表します。このコードが実行されると、フルパス（例：`C:\Users\s_k_t\pusher_test1010_app\public\download.pdf`）が生成されます。
 
-`Rails.root` は、Railsアプリケーションのルートディレクトリ（この場合は `C:\Users\s_k_t\pusher_test1010_app`）を指すので、`public` フォルダへのフルパスは `Rails.root.join('public', 'download.pdf').to_s` によって自動的に計算されます。
-
-したがって、`C:\Users\s_k_t\pusher_test1010_app\public` を明示的に書く必要はありません。この方法が便利なのは、アプリケーションが異なる環境（開発、テスト、本番など）で実行される場合でも、このコードが正しく動作するようになるからです。
-
-以下のように `ENV['DOWNLOAD_PATH']` にこのフルパスを設定することで、`download.rb` スクリプト内で `ENV['DOWNLOAD_PATH']` を使用してその場所にファイルを保存できます。
+Ruby on Railsで外部スクリプトを遅延実行する方法はいくつかありますが、簡単な方法としてはRubyの `sleep` メソッドを使用する方法があります。
 
 ```ruby
-# home_controller.rb
 def open_pdf
-    # ...（略）...
-    ENV['DOWNLOAD_PATH'] = Rails.root.join('public', 'download.pdf').to_s
-    system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
+  # ...（既存のコード）
+
+  # 10秒待機
+  sleep 10
+
+  # 外部のRubyスクリプトを実行
+  system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
 end
 ```
 
-そして `download.rb` でこの環境変数を使用します。
+この方法は単純ですが、注意点があります。`sleep` メソッドは、その間全ての処理を停止するので、他のリクエストが来た場合にも影響を与える可能性があります。
+
+より本格的な実装を考えるならば、非同期のバックグラウンドジョブを使用する方法が一般的です。これには、`Sidekiq` や `Delayed::Job` のようなgemを使用します。
+
+例えば `Sidekiq` を使用する場合:
+
+1. Gemfileに `sidekiq` を追加し、`bundle install`を実行。
+2. 新しいWorkerクラスを作成して、遅延実行するコードを記述。
+3. コントローラーからそのWorkerを呼び出す。
+
+このようにすると、非同期でタスクを実行でき、アプリケーションのパフォーマンスも維持できます。
+
+このJavaScriptコードは、Webページが読み込まれた際に特定の処理を行います。
+具体的には、PDFファイルをiframe内で表示し、一定時間後に別のPDFファイルに切り替え、
+その後サーバーにDELETEメソッドでリクエストを送る、といった一連の処理が含まれています。
+
+詳しく解説します。
+
+1. **window.onload = function() { ... }**:
+ ページが完全に読み込まれた後に処理を開始します。
+  
+2. **let contentFrame = document.getElementById("content");**:
+ HTML内のidが"content"である要素（この場合はiframe）を取得して
+ `contentFrame`変数に格納します。
+
+3. **contentFrame.src = "/temp/default.pdf";**:
+ iframeの`src`属性を`/temp/default.pdf`に設定し、このPDFを表示します。
+
+4. **setTimeout(function() { ... }, 10000);**:
+ 10秒後（10000ミリ秒後）に指定した関数を実行します。
+
+  - **contentFrame.src = "/temp/download.pdf";**:
+   10秒後にiframeの`src`を`/temp/download.pdf`に変更します。
+  
+  - **contentFrame.onload = function() { ... };**:
+   `src`が変更されて新しいPDFが読み込まれた後に、この関数が呼び出されます。
+  
+    - **fetch('/delete_pdf', { method: 'DELETE' })**: 
+    サーバーの`/delete_pdf`エンドポイントにDELETEメソッドでリクエストを送ります。
+    
+    - **.then(() => { ... })**:
+     リクエストが成功した場合の処理。ここではコンソールに"delete_pdf成功"と出力されます。
+    
+    - **.catch(() => { ... })**: 
+    リクエストが失敗した場合の処理。"delete_pdf失敗"とコンソールに出力し、`src`を`/temp/default.pdf`に戻します。
+
+このように、コードは非常に線形であり、各ステップが明確に定義されています。主な動作は、ページの読み込みが完了したらPDFを表示し、10秒後に別のPDFに切り替え、その読み込みが完了したらDELETEリクエストを送る、という流れです。
+
+
+
+
+
+
+////////////////////////////10/16............................
+
+
+プッシュ通知を使用すると、サーバーからクライアントへの通信が効率的になり、新しいPDFが生成された瞬間にクライアントがそれを知ることができます。これは、クライアントが一定間隔でサーバーにリクエストを送るポーリングよりも効率的です。
+
+プッシュ通知の一例として、WebSocketを使う方法があります。RailsではActionCableというライブラリでWebSocketを簡単に扱うことができます。
+
+以下は、ActionCableを用いた基本的な実装のスケッチです。
+
+### サーバー側（Ruby on Rails）
+
+1. `app/channels/application_cable/connection.rb` を設定します。
+
+    ```ruby
+    module ApplicationCable
+      class Connection < ActionCable::Connection::Base
+      end
+    end
+    ```
+
+2. 新しいチャンネルを作成します。この例では `PdfChannel` とします。
+
+    ```bash
+    rails generate channel Pdf
+    ```
+
+3. 生成された `app/channels/pdf_channel.rb` を編集します。
+
+    ```ruby
+    class PdfChannel < ApplicationCable::Channel
+      def subscribed
+        stream_from "pdf_channel"
+      end
+    end
+    ```
+
+4. 新しいPDFが生成されたときにこのチャンネルを通じて通知を送ります。
+
+    ```ruby
+    ActionCable.server.broadcast "pdf_channel", message: 'new_pdf_generated'
+    ```
+
+### クライアント側（JavaScript）
+
+1. ActionCableをセットアップします。
+
+    ```javascript
+    import consumer from "./consumer"
+
+    consumer.subscriptions.create("PdfChannel", {
+      received(data) {
+        // 新しいPDFが生成されたときの処理
+        if (data.message === 'new_pdf_generated') {
+          document.getElementById("content").src = "/temp/download.pdf";
+        }
+      }
+    });
+    ```
+
+これで、新しいPDFが生成された瞬間に、その情報がクライアントにプッシュされ、iframeの`src`が更新されるようになります。
+
+
+
+PusherはWebSocketによるリアルタイム通信をサポートしていますが、通常のブラウザのプッシュ通知（通知バーに表示されるもの）とは異なります。Pusherを使用すると、サーバーからブラウザに
+リアルタイムでデータを送ることができます。
+
+Pusherで「OKボタンを押さないといけない」というのは、おそらくブラウザの通知APIを使っているからだと思われます。Pusher自体はそのような制約を持っていません。
+
+JavaScriptでPusherを使ってリアルタイムにデータを受け取る例を以下に示します。
+
+```javascript
+// PusherのJavaScriptライブラリを読み込みます
+var pusher = new Pusher('YOUR_PUSHER_APP_KEY', {
+  cluster: 'YOUR_PUSHER_APP_CLUSTER'
+});
+
+// チャンネルに参加します
+var channel = pusher.subscribe('my-channel');
+
+// 'my-event'イベントを待ち受けます
+channel.bind('my-event', function(data) {
+  // 新しいPDFが生成されたときの処理
+  if (data.message === 'new_pdf_generated') {
+    document.getElementById("content").src = "/temp/download.pdf";
+  }
+});
+```
+
+このように設定すると、「OKボタンを押さないといけない」といった制約なく、サーバーからの通知をリアルタイムで受け取って処理を行うことができます。
+
+
+
+プッシュ通知を使ってリアルタイムにPDFファイルが生成されたかどうかを確認するために、以下のような手順が考えられます。
+
+### サーバーサイド（Ruby on Rails）
+
+1. 新しいPDFが生成された際に、Pusherを使ってフロントエンドに通知を送ります。
+
+    ```ruby
+    # PDFが生成された後の処理
+    begin
+        Pusher.trigger('my-channel', 'my-event', { message: 'new_pdf_generated' })
+        head :ok
+    rescue => e
+        render json: { error: "Pusherでエラーが発生しました: #{e.message}" }, status: :internal_server_error
+    end
+    ```
+
+### フロントエンド（JavaScript）
+
+1. Pusherの通知を受け取ったら、`/temp/download.pdf` を確認しに行き、存在する場合はそのPDFをiframeで表示します。
+
+    ```javascript
+    // PusherのJavaScriptライブラリを読み込み
+    var pusher = new Pusher('YOUR_PUSHER_APP_KEY', {
+      cluster: 'YOUR_PUSHER_APP_CLUSTER'
+    });
+
+    // チャンネルに参加
+    var channel = pusher.subscribe('my-channel');
+
+    // 'my-event'イベントを待ち受け
+    channel.bind('my-event', function(data) {
+      // 新しいPDFが生成されたときの処理
+      if (data.message === 'new_pdf_generated') {
+        // ここでPDFの存在を確認して、存在する場合はiframeで表示
+        var contentFrame = document.getElementById("content");
+        contentFrame.src = "/temp/download.pdf";
+      }
+    });
+    ```
+
+このようにすることで、新しいPDFが生成された際にリアルタイムでそのPDFをiframeで表示することができます。
+
+
+Pusherに関するJavaScriptコードは、HTMLの`<body>`タグが閉じる直前に追加するのが一般的です。ただし、それはすでにある`<script>`タグの後に追加することが重要です。このようにすることで、ページが読み込まれたときにすべてのJavaScriptコードが正しく動作する確率が高くなります。
+
+以下が修正後のコードです。
+
+```html
+
+  <body>
+    <!-- 表示用　iframe-->
+    <iframe id="content" src='/temp/default.pdf'></iframe>
+    <script>
+      // 既存のJavaScriptコード
+      window.onload = function() {
+        let contentFrame = document.getElementById("content");
+        contentFrame.src = "/temp/default.pdf";
+        // 以前のコード...
+      };
+    </script>
+    <!-- ここにPusherのコードを追加 -->
+    <script>
+      var pusher = new Pusher('32f2640be6b94e4b6afe', {
+        cluster: 'ap3'
+      });
+      var channel = pusher.subscribe('my-channel');
+      channel.bind('my-event', function(data) {
+        if (data.message === 'new_pdf_generated') {
+          var contentFrame = document.getElementById("content");
+          contentFrame.src = "/temp/download.pdf";
+        }
+      });
+    </script>
+  </body>
+</html>
+```
+
+この修正により、Pusherを使用してサーバーからのプッシュ通知を受け取り、その通知に応じてPDFを表示する処理が追加されました。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Rubyの`sleep`関数は、引数で指定した秒数だけプログラムの実行を停止します。
+ただし、Ruby on Railsのコントローラ内で`sleep`を使うと、
+その間ユーザーはレスポンスを受け取れずに待たされてしまいます。
+これはあまり良いユーザーエクスペリエンスとは言えません。
+
+また、`sleep(1000)`とすると、1000秒（約16.7分）プログラムが停止することになります。
+秒数を調整する必要があります（10秒なら`sleep(10)`）。
+
+このような遅延処理は、非同期処理やバックグラウンドジョブを用いて実装するのが一般的です。
+Railsでは、`ActiveJob`というフレームワークがよく用いられます。
+
+以下は`ActiveJob`を使った例です。
 
 ```ruby
-# download.rb
-download_path = ENV['DOWNLOAD_PATH']
-File.open(download_path, "wb") do |file|
-    file.write(Base64.decode64(params['base64']))
+# app/jobs/send_response_job.rb
+class SendResponseJob < ApplicationJob
+  queue_as :default
+
+  def perform(file_id)
+    if file_id
+        render json: { message: "処理を開始します" }, status: :ok
+    else
+        render json: { error: "受信待ち" }, status: :bad_request
+    end
+  end
 end
 ```
 
-このようにすることで、`download.rb` は `ENV['DOWNLOAD_PATH']` に保存されたパスにファイルを保存します。
+そして、コントローラー内でこのジョブを呼び出す方法は以下のとおりです。
+
+```ruby
+# app/controllers/home_controller.rb
+def open_pdf
+  # ...（省略）...
+
+  # 10秒後にSendResponseJobを実行
+  SendResponseJob.set(wait: 10.seconds).perform_later(@file_id)
+end
+```
+
+このようにすると、10秒後に`SendResponseJob`が実行され、指定した処理が行われます。
+この場合、ユーザーはその間に他の操作を行えます。
+
+
+
+まず、`SendResponseJob`という新しいActiveJobを作成します。
+このジョブは、`@file_id`に応じたJSONレスポンスを生成する役割を担います。
+
+```ruby
+# app/jobs/send_response_job.rb
+class SendResponseJob < ApplicationJob
+  queue_as :default
+
+  def perform(file_id)
+    if file_id
+      # ここではrenderを直接使用できないため、何らかの手段（例えば、Pusher）を用いてクライアントに通知を送る
+    else
+      # こちらも同様
+    end
+  end
+end
+```
+
+次に、`home_controller.rb`の`open_pdf`メソッドを修正します。
+ここでは、`SendResponseJob`を10秒後に実行するようにスケジューリングします。
+
+```ruby
+# app/controllers/home_controller.rb
+def open_pdf
+  # ...（省略）...
+
+  # その他の処理（例：PDFの生成など）
+
+  # 10秒後にSendResponseJobを実行
+  SendResponseJob.set(wait: 10.seconds).perform_later(@file_id)
+
+  # 非同期処理をスケジュールした後は、即座に何らかのレスポンスを返す（ここでは例として200 OKを返しています）
+  render json: { message: "Job is scheduled" }, status: :ok
+end
+```
+
+このようにすることで、`open_pdf`メソッドが呼び出された後、
+10秒後に`SendResponseJob`が実行されます。
+このジョブ内で必要な処理（例えば、クライアントにPusherを使って通知を送るなど）を行えます。
+
+ただし、`perform`メソッド内で`render`メソッドは使用できません。
+この部分は、通常非同期通知の手段（例えば、Pusher）を使ってクライアントに結果を通知する形になります。
+
+この説明が理解できましたでしょうか？何か質問や不明点があれば、どうぞお知らせください。
+
+
+
+新しく作成されたPDFが表示されない、および `DELETE` メソッドが発動しないとのことですが、これは多くの原因が考えられます。
+
+1. **新しく作成されたPDFが表示されない**: Pusherからの通知は正確に来ていますか？もし通知が来ている場合、JavaScript内での条件分岐（`if (data.message === 'new_pdf_generated')`）は正しく動作していますか？また、`/temp/download.pdf` が実際に存在するかどうかも確認してください。
+
+2. **DELETE メソッドが発動しない**: `fetch('/delete_pdf', { method: 'DELETE' })` が呼び出されていない、またはエラーが発生している可能性があります。JavaScriptの `console.log` またはブラウザの開発者ツールを使用して、エラーが発生していないか確認してみてください。
+
+3. **ルーティング**: あなたがアップロードした `display.html.erb` にJavaScriptのコードが含まれていましたが、このJavaScriptが実際に読み込まれて実行されているか確認してください。
+
+以下は、Pusherを使用して新しく作成されたPDFを表示し、その後でPDFを削除するための一例です。
+
+```html
+<script>
+  // Pusherの設定
+  var pusher = new Pusher('YOUR_PUSHER_APP_KEY', {
+    cluster: 'YOUR_PUSHER_APP_CLUSTER'
+  });
+
+  var channel = pusher.subscribe('my-channel');
+
+  channel.bind('my-event', function(data) {
+    if (data.message === 'new_pdf_generated') {
+      var contentFrame = document.getElementById("content");
+      contentFrame.src = "/temp/download.pdf";
+
+      contentFrame.onload = function() {
+        fetch('/delete_pdf', {
+          method: 'DELETE'
+        })
+        .then(() => {
+          console.log("delete_pdf成功");
+        })
+        .catch(() => {
+          console.log("delete_pdf失敗");
+        });
+      };
+    }
+  });
+</script>
+```
+
+このJavaScriptコードは、Pusherから `new_pdf_generated` というメッセージを受け取ったら、新しいPDFをiframeで表示し、そのPDFが読み込まれたらDELETEメソッドを発動してPDFを削除します。
+
+このコードを `display.html.erb` の適切な場所（たとえば、既存のJavaScriptの後）に追加してみてください。そして、もう一度動作を確認してみてください。
+
+何か疑問点があれば、お知らせください。
 
 
 
 
 
-### 保存先がパブリックである理由
 
-Railsの`public`ディレクトリは、静的なファイル（HTML、CSS、画像、PDFなど）を格納するための場所です。このディレクトリ内のファイルは、Webサーバーによって直接公開されます。つまり、外部からアクセス可能で、特定のURLによって直接参照できます。
+______
 
-一般に、ダウンロードや表示が必要なファイルを外部に公開する場合、`public`ディレクトリを使うことが多いです。ただし、セキュリティが重要な場合（例：認証が必要なファイル）は、`public`ディレクトリを使わずに、コントローラーを通じてファイルを提供する方法もあります。
 
-### エンコーダーについて
 
-エンコーダー（Encoder）は、データをある形式から別の形式に変換するプログラムまたはデバイスを指します。このコンテキストでの「エンコーダー」は、Base64エンコーディングを指している可能性が高いです。
 
-Base64エンコーディングは、バイナリデータをASCII（基本的な文字コード）のテキスト形式に変換する手法の一つです。このエンコーディングは、バイナリデータをテキスト形式で安全に送受信する必要がある場合（例：電子メール）によく使用されます。
 
-Rubyでは、`Base64`モジュールを使ってこのようなエンコーディングとデコーディングを行います。例えば、`Base64.encode64('Hello, world!')`で文字列をBase64でエンコードし、`Base64.decode64(encoded_string)`でエンコードされた文字列をデコードできます。
 
-このエンコーディングとデコーディングの過程で、「エンコーダー」がデータを一つの形式から別の形式に変換します。この場合、Base64エンコーダーがバイナリデータをASCIIテキストに、デコーダーがASCIIテキストを元のバイナリデータに戻します。
+<!DOCTYPE html>
+
+<%# :1013_test用.pdf
+curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1Cb3pJG-8A6LCY8XvlXl_vgCjPk9OoJxu""}" http://localhost:3000/open_pdf
+ %>
+<%# :ストレスケア
+curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1VXKVUAG5XiAp99-OLp5CUvGxwi3RvtY1""}" http://localhost:3000/open_pdf
+ %>
+<%#：待機画像
+curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1VXKVUAG5XiAp99-OLp5CUvGxwi3RvtY1""}" http://localhost:3000/open_pdf
+%>
+
+  <html>
+    <head>
+      <base target="_top">
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height:100vh;
+          }
+          iframe {
+            border:none;
+            width:100%;
+            height:100%;
+          }
+        </style>
+    </head>
+
+    <body>
+      <!-- 表示用　iframe-->
+      <iframe id="content" src='/temp/default.pdf'></iframe>
+        <script>
+          // 関数：PDFの表示と削除処理：ページが完全に読み込まれた後の処理
+          window.onload = function() {
+            // iframe要素を取得
+            let contentFrame = document.getElementById("content");
+
+            // 初期表示は/temp/default.pdf
+            contentFrame.src = "/temp/default.pdf";
+
+            // 指定時間後に実行する処理
+            setTimeout(function() {
+              // download.pdfが生成され、iframeのsrcを変更
+              contentFrame.src = "/temp/download.pdf";
+
+              // download.pdfがiframeに読み込まれたら、次の処理に移る
+              contentFrame.onload = function() {
+                // (/delete_pdf): DELETEメソッドでリクエスト送信
+                fetch('/delete_pdf', {
+                  method: 'DELETE'
+                })
+                .then(() => {
+                  console.log("delete_pdf成功");
+                })
+                .catch(() => {
+                  console.log("delete_pdf失敗");
+                  // エラーが発生した場合は、default.pdfを再表示
+                  contentFrame.src = "/temp/default.pdf";
+                });
+              };
+             }, 10000); // 10秒：timde_set
+          };
+    </body>
+  </html>
+
+______
