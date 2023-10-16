@@ -25,12 +25,12 @@
     <script>
     //ページロード完了時に関数を実行する
     document.addEventListener("DOMContentLoaded", function() {
-        // Pusherのインスタンスを作成
-        var pusher = new Pusher('32f2640be6b94e4b6afe', {
-        cluster: 'ap3'
-        });
+        // // Pusherのインスタンスを作成
+        // var pusher = new Pusher('32f2640be6b94e4b6afe', {
+        // cluster: 'ap3'
+        // });
         //my-channel:サブスクライブ（このチャンネルのevent通知をうけとる）
-        var channel = pusher.subscribe('my-channel');
+        // var channel = pusher.subscribe('my-channel');
         //my-event:`my-channel`の要素（dataはイベントと共に送信されたデータ）：`data.message`にPDFのURL
         channel.bind('my-event', function(data) {
             

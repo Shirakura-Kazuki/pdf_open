@@ -1,132 +1,87 @@
 <!DOCTYPE html>
 
-<%# :1013_test用.pdf
+<!-- 以下はサーバー側のAPIを呼び出すためのcurlコマンド例 -->
+<%# :1013_test用.pdf ...
 curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1Cb3pJG-8A6LCY8XvlXl_vgCjPk9OoJxu""}" http://localhost:3000/open_pdf
- %>
-<%# :ストレスケア
-curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1VXKVUAG5XiAp99-OLp5CUvGxwi3RvtY1""}" http://localhost:3000/open_pdf
- %>
-<%#：待機画像
+ %> 
+<%# :ストレスケア ... 
 curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1VXKVUAG5XiAp99-OLp5CUvGxwi3RvtY1""}" http://localhost:3000/open_pdf
 %>
+<%#：待機画像 ...
+curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1t8OueyGZqRhKoWVKWNUmrvqJ-EUmQPog""}" http://localhost:3000/open_pdf
+%>
 
-  <html>
-    <head>
-      <base target="_top">
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            height:100vh;
-          }
-          iframe {
-            border:none;
-            width:100%;
-            height:100%;
-          }
-        </style>
-    </head>
-
-    <body>
-      <!-- 表示用　iframe-->
-  <iframe id="content" src='/temp/default.pdf'></iframe>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height: 100vh;
+      }
+      iframe {
+        border: none;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 表示用 iframe -->
+    <iframe id="content" src='/temp/default.pdf'></iframe>
     <script>
-      // PDFの表示と削除処理
+      let isDownloaded = false; // ファイルがダウンロードされたかどうかを示すフラグ
+
       window.onload = function() {
         // iframe要素を取得
         let contentFrame = document.getElementById("content");
-
+        
         // 初期表示は/temp/default.pdf
         contentFrame.src = "/temp/default.pdf";
-
-        // 15秒後に実行する処理
-        setTimeout(function() {
-          // PDFの存在を確認
-          fetch("/temp/download.pdf", { method: 'HEAD' })
-          .then(response => {
-            if (response.ok) {
-              // ファイルが存在する場合
-              contentFrame.src = "/temp/download.pdf";
-              // ファイルを表示したら削除
-              contentFrame.onload = function() {
-                fetch('/delete_pdf', {
-                  method: 'DELETE'
-                })
-                .then(() => {
-                  console.log("delete_pdf成功");
-                })
-                .catch(() => {
-                  console.log("delete_pdf失敗");
-                });
-              };
-            } else {
-              // ファイルが存在しない場合
-              console.log("download.pdfは存在しません");
-            }
-          })
-          .catch(error => {
-            console.log("エラーが発生しました:", error);
-          });
-         }, 7000); 
-
-
-        // // 15秒後に実行する処理
-        // setTimeout(function() {
-        //   // 仮にdownload.pdfが生成されたと仮定して、iframeのsrcを変更
-        //   contentFrame.src = "/temp/download.pdf";
-
-        //   // download.pdfがiframeに読み込まれたら、次の処理に移る
-        //   contentFrame.onload = function() {
-        //     // (/delete_pdf): DELETEメソッドでリクエスト送信
-        //     fetch('/delete_pdf', {
-        //       method: 'DELETE'
-        //     })
-        //     .then(() => {
-        //       console.log("delete_pdf成功");
-        //     })
-        //     .catch(() => {
-        //       console.log("delete_pdf失敗");
-        //       // エラーが発生した場合は、default.pdfを再表示
-        //       contentFrame.src = "/temp/default.pdf";
-        //     });
-        //   };
-        // }, 15000); 
-
       };
 
+      // ファイルの存在を確認
       function checkFileExists() {
-      fetch("/check_file_exists")
+        fetch("/check_file_exists")
         .then(response => response.json())
         .then(data => {
           if (data.message === 'File exists') {
             console.log("download.pdfは存在します");
-            
-            // ここでiframeのsrcを変更する
             let contentFrame = document.getElementById("content");
             contentFrame.src = "/temp/download.pdf";
-            
+            isDownloaded = true; // フラグを更新
           } else {
             console.log("download.pdfは存在しません");
           }
         })
         .catch(error => {
           console.log("エラーが発生しました:", error);
-     });
-    }
+        });
+      }
 
-        // 5秒ごとにcheckFileExistsを呼び出す
-        setInterval(checkFileExists, 5000);
+      // ファイルがダウンロードされた（isDownloaded = true）後に、一度だけ削除処理を呼び出す
+      function tryDeleteFile() {
+        if (isDownloaded) {
+          fetch('/delete_pdf', {
+            method: 'DELETE'
+          })
+          .then(() => {
+            console.log("delete_pdf成功");
+          })
+          .catch(() => {
+            console.log("delete_pdf失敗");
+          });
+          isDownloaded = false; // フラグをリセット
+        }
+      }
 
+      // 15秒ごとにcheckFileExistsを呼び出す
+      setInterval(checkFileExists, 15000);
+
+      // 5秒ごとにtryDeleteFileを呼び出す
+      setInterval(tryDeleteFile, 5000);
     </script>
   </body>
 </html>
-
-
-
-
-
-
-
-
-

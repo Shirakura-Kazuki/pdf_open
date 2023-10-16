@@ -15,13 +15,13 @@
 <%# src:表示するファイル指定 %>
 <h3>表示プレビュー</h3>
 <iframe id="content" src= "theURL" ></iframe>
-<script>
+<%# <script>
    //ページロード完了時に関数を実行する
   document.addEventListener("DOMContentLoaded", function() {
     // Pusherのインスタンスを作成
-    var pusher = new Pusher('32f2640be6b94e4b6afe', {
-      cluster: 'ap3'
-    });
+    // var pusher = new Pusher('32f2640be6b94e4b6afe', {
+    //   cluster: 'ap3'
+    // });
 
     var channel = pusher.subscribe('my-channel');
 
@@ -39,6 +39,6 @@
       var theURL = url + "/preview";
     });
   });
-</script>
+</script> %>
 
 <!--<%= link_to '現在表示PDF', 'https://www.google.co.jp/', id: "pdf-id-link" %>-->
