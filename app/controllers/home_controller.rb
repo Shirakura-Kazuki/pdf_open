@@ -33,7 +33,6 @@ class HomeController < ApplicationController
         # PDFのURLを修正
         original_url = @file_id.to_s
         @modified_url =  "https://drive.google.com/file/d/"+ original_url + "/preview"
-        
 
         # #Pusherでイベントをトリガー
         # begin
@@ -47,6 +46,8 @@ class HomeController < ApplicationController
         # 外部スクリプトへ値を受け渡す
         ENV['KEYCODE'] = @keycode
         ENV['FILE_ID'] = @file_id
+        @i = 1
+        ENV['index'] = @i.to_s
 
         # PDFファイルの保存先指定（public/temp/ディレクトリ内）
         ENV['DOWNLOAD_PATH'] = Rails.root.join('public', 'temp', 'download.pdf').to_s
@@ -66,6 +67,18 @@ class HomeController < ApplicationController
         head :ok
     end
       
+    # /download.pdf：チェック関数（TEST）
+    def check_file_exists
+        file_path = Rails.root.join('public', 'temp', 'download.pdf')
+        
+        if File.exist?(file_path)
+          # ファイルが存在する場合の処理
+          render json: { message: 'File exists' }, status: :ok
+        else
+          # ファイルが存在しない場合の処理
+          render json: { message: 'File does not exist' }, status: :not_found
+        end
+      end
 
 end
   

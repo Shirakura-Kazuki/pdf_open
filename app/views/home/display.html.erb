@@ -30,65 +30,26 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
 
     <body>
       <!-- 表示用　iframe-->
-      
-
-
-
   <iframe id="content" src='/temp/default.pdf'></iframe>
-<script>
-  // PDFの表示と削除処理
-  window.onload = function() {
-    // iframe要素を取得
-    let contentFrame = document.getElementById("content");
+    <script>
+      // PDFの表示と削除処理
+      window.onload = function() {
+        // iframe要素を取得
+        let contentFrame = document.getElementById("content");
 
-    // 初期表示は/temp/default.pdf
-    contentFrame.src = "/temp/default.pdf";
+        // 初期表示は/temp/default.pdf
+        contentFrame.src = "/temp/default.pdf";
 
-    // 1分後に実行する処理
-    setTimeout(function() {
-      // 仮にdownload.pdfが生成されたと仮定して、iframeのsrcを変更
-      contentFrame.src = "/temp/download.pdf";
-
-      // download.pdfがiframeに読み込まれたら、次の処理に移る
-      contentFrame.onload = function() {
-        // (/delete_pdf): DELETEメソッドでリクエスト送信
-        fetch('/delete_pdf', {
-          method: 'DELETE'
-        })
-        .then(() => {
-          console.log("delete_pdf成功");
-        })
-        .catch(() => {
-          console.log("delete_pdf失敗");
-          // エラーが発生した場合は、default.pdfを再表示
-          contentFrame.src = "/temp/default.pdf";
-        });
-      };
-    }, 20000); // 1分後
-  };
-</script>
-
-
-
-<!--
-<iframe id="content" src='/temp/default.pdf'></iframe>
-        <script>
-          // 関数：PDFの表示と削除処理：ページが完全に読み込まれた後の処理
-          window.onload = function() {
-            // iframe要素を取得
-            let contentFrame = document.getElementById("content");
-
-            // 初期表示は/temp/default.pdf
-            contentFrame.src = "/temp/default.pdf";
-
-            // 指定時間後に実行する処理
-            setTimeout(function() {
-              // download.pdfが生成され、iframeのsrcを変更
+        // 15秒後に実行する処理
+        setTimeout(function() {
+          // PDFの存在を確認
+          fetch("/temp/download.pdf", { method: 'HEAD' })
+          .then(response => {
+            if (response.ok) {
+              // ファイルが存在する場合
               contentFrame.src = "/temp/download.pdf";
-
-              // download.pdfがiframeに読み込まれたら、次の処理に移る
+              // ファイルを表示したら削除
               contentFrame.onload = function() {
-                // (/delete_pdf): DELETEメソッドでリクエスト送信
                 fetch('/delete_pdf', {
                   method: 'DELETE'
                 })
@@ -97,12 +58,75 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
                 })
                 .catch(() => {
                   console.log("delete_pdf失敗");
-                  // エラーが発生した場合は、default.pdfを再表示
-                  contentFrame.src = "/temp/default.pdf";
                 });
               };
-             }, 10); // 10秒：timde_set
-          };
-    </body>
-  </html>
--->
+            } else {
+              // ファイルが存在しない場合
+              console.log("download.pdfは存在しません");
+            }
+          })
+          .catch(error => {
+            console.log("エラーが発生しました:", error);
+          });
+         }, 7000); 
+
+
+        // // 15秒後に実行する処理
+        // setTimeout(function() {
+        //   // 仮にdownload.pdfが生成されたと仮定して、iframeのsrcを変更
+        //   contentFrame.src = "/temp/download.pdf";
+
+        //   // download.pdfがiframeに読み込まれたら、次の処理に移る
+        //   contentFrame.onload = function() {
+        //     // (/delete_pdf): DELETEメソッドでリクエスト送信
+        //     fetch('/delete_pdf', {
+        //       method: 'DELETE'
+        //     })
+        //     .then(() => {
+        //       console.log("delete_pdf成功");
+        //     })
+        //     .catch(() => {
+        //       console.log("delete_pdf失敗");
+        //       // エラーが発生した場合は、default.pdfを再表示
+        //       contentFrame.src = "/temp/default.pdf";
+        //     });
+        //   };
+        // }, 15000); 
+
+      };
+
+      function checkFileExists() {
+      fetch("/check_file_exists")
+        .then(response => response.json())
+        .then(data => {
+          if (data.message === 'File exists') {
+            console.log("download.pdfは存在します");
+            
+            // ここでiframeのsrcを変更する
+            let contentFrame = document.getElementById("content");
+            contentFrame.src = "/temp/download.pdf";
+            
+          } else {
+            console.log("download.pdfは存在しません");
+          }
+        })
+        .catch(error => {
+          console.log("エラーが発生しました:", error);
+     });
+    }
+
+        // 5秒ごとにcheckFileExistsを呼び出す
+        setInterval(checkFileExists, 5000);
+
+    </script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+

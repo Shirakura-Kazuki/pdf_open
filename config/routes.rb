@@ -7,7 +7,9 @@ Rails.application.routes.draw do
   get 'test' ,to:'home#test'
   post '/open_pdf', to: 'home#open_pdf'
   delete '/delete_pdf', to: 'home#delete_pdf'
-
-  #/display読み込みテスト用
   get 'display' , to:'home#display'
+
+
+  # ファイルcheck関数テスト
+  get '/check_file_exists' , to:'home#check_file_exists'
 end
