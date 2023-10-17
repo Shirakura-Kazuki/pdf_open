@@ -22,26 +22,17 @@ class HomeController < ApplicationController
         @keycode = params[:keycode]
         @file_id = params[:id]
 
-        # # パラメータの存在確認
-        # if @file_id
-        #     render json: { message: "処理を開始します" }, status: :ok
-        # else
-        #     render json: { error: "受信待ち" }, status: :bad_request
-        #     return
-        # end
+        # パラメータの存在確認
+        if @file_id
+            render json: { message: "処理を開始します" }, status: :ok
+        else
+            render json: { error: "受信待ち" }, status: :bad_request
+            return
+        end
     
         # PDFのURLを修正
         original_url = @file_id.to_s
         @modified_url =  "https://drive.google.com/file/d/"+ original_url + "/preview"
-
-        # #Pusherでイベントをトリガー
-        begin
-            Pusher.trigger('my-channel', 'my-event', { message:"処理を開始します" })
-            head :ok
-        rescue => e
-            render json: { error: "Pusherでエラーが発生しました: #{e.message}" }, status: :internal_server_error
-        end
-
 
         # 外部スクリプトへ値を受け渡す
         ENV['KEYCODE'] = @keycode
@@ -51,8 +42,33 @@ class HomeController < ApplicationController
         ENV['DOWNLOAD_PATH'] = Rails.root.join('public', 'temp', 'download.pdf').to_s
 
         # 外部のRubyスクリプトを実行
-        system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
+        look = system("ruby C:/Users/s_k_t/pusher_test1010_app/config/download.rb")
 
+        if look
+            # #Pusherでイベントをトリガー
+            begin
+              Pusher.trigger('my-channel', 'my-event', { message: "ファイルの更新を行います" })
+              head :ok
+            rescue => e
+              render json: { error: "Pusherでエラーが発生しました: #{e.message}" }, status: :internal_server_error
+            end
+        else
+            render json: { error: "外部スクリプトの実行に失敗しました" }, status: :internal_server_error
+        end
+
+        
+        # if look 
+        #     begin
+        #         # #Pusherでイベントをトリガー
+        #         begin
+        #             Pusher.trigger('my-channel', 'my-event', { message:"ファイルの更新を行います" })
+        #             head :ok
+        #         rescue => e
+        #             render json: { error: "Pusherでエラーが発生しました: #{e.message}" }, status: :internal_server_error
+        #         end
+        # else
+        #             render json: { error: "外部スクリプトの実行に失敗しました" }, status: :internal_server_error   
+        # end
     end
   
     def display
@@ -65,18 +81,19 @@ class HomeController < ApplicationController
         head :ok
     end
       
-    # /download.pdf：チェック関数（TEST）
+    # /download.pdf：チェック関数
     def check_file_exists
-        file_path = Rails.root.join('public', 'temp', 'download.pdf')
         
-        if File.exist?(file_path)
-          # ファイルが存在する場合の処理
-          render json: { message: 'File exists' }, status: :ok
-        else
-          # ファイルが存在しない場合の処理
-          render json: { message: 'File does not exist' }, status: :not_found
-        end
-      end
+        file_path = Rails.root.join('public', 'temp', 'download.pdf')
 
+        if File.exist?(file_path)
+
+        # ファイルが存在する場合の処理
+        render json: { message: 'File exists' }, status: :ok
+        else
+        # ファイルが存在しない場合の処理
+        render json: { message: 'File does not exist' }, status: :not_found
+        end
+
+    end
 end
-  

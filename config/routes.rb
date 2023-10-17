@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  root 'home#index'
+  root 'home#display'
   post 'send_notification', to: 'home#send_notification'  
   post 'send_pdf' , to:'home#send_pdf'
   # PDFファイル表示用ページ

@@ -5,28 +5,34 @@ document.addEventListener("DOMContentLoaded", function() {
 
   var channel = pusher.subscribe('my-channel');
 
-  channel.bind('my-event', function(data) {
-    alert('Received my-event with message: ' + data.message);
-  });
 
-  // my-event: Custom Trigger Function
+  // 前回使用コード：alert()呼び出し→ブラウザ固定のダイアログ（通知テンプレ）が送信される
+  // channel.bind('my-event', function(data) {
+  //   alert('Received my-event with message: ' + data.message);
+  // });
+
+  // my-event（トリガー）：発生時の関数
   channel.bind('my-event', function(data) {
-    // Create and display the notification
+
+    // notification:通知ドキュメント定義
+    // 新しい`<div>`要素を作成
     var notification = document.createElement('div');
-    notification.innerText = 'Received my-event with message: ' + data.message;
+    // <div>`要素に表示するテキストを設定:通知のスタイル変更
+    notification.innerText = 'ファイルの更新を行います：' + data.message;
     notification.style.position = 'fixed';
+    notification.style.backgroundposition = 'righttops';
     notification.style.top = '50%';
     notification.style.left = '50%';
     notification.style.transform = 'translate(-50%, -50%)';
     notification.style.backgroundColor = '#ffffff';
     notification.style.border = '1px solid #ccc';
-    notification.style.padding = '15px';
+    notification.style.padding = '150px';
     notification.style.width = '200px';
-    notification.style.height = '100px';  // Changed from 300px to 100px
+    notification.style.height = '100px';  
     notification.style.zIndex = '1000';
     document.body.appendChild(notification);
 
-    // Remove the notification after 3 seconds
+    // 3秒後に通知を閉じる
     setTimeout(function() {
       document.body.removeChild(notification);
     }, 3000);

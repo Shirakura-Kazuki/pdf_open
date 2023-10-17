@@ -1,2 +1,14 @@
+/* ブラウザ表示するダイアログのデザイン変更
 
-  
+.custom-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 15px;
+    width: 200px; 
+    z-index: 1000;
+  }
+    */

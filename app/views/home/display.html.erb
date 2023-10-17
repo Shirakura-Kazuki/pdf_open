@@ -42,27 +42,51 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
         contentFrame.src = "/temp/default.pdf";
       };
 
-      // ファイルの存在を確認
+      //プッシュ通知を感知して、該当するファイルを参照する
+      // Pusherのインスタンスを作成
+      var pusher = new Pusher('32f2640be6b94e4b6afe', {
+      cluster: 'ap3'
+      });
+
+      var channel = pusher.subscribe('my-channel');
+
+      channel.bind('my-event', function(data) {
+        // ここでcheckFileExistsを呼び出す
+        checkFileExists();
+        console.log("ファイルcheck関数は発動しています");
+      });
+
+      // ファイルの存在を確認　（実装：ループをかける）
       function checkFileExists() {
         fetch("/check_file_exists")
-        .then(response => response.json())
-        .then(data => {
-          if (data.message === 'File exists') {
-            console.log("download.pdfは存在します");
-            let contentFrame = document.getElementById("content");
-            contentFrame.src = "/temp/download.pdf";
-            isDownloaded = true; // フラグを更新
-          } else {
-            console.log("download.pdfは存在しません");
-          }
-        })
-        .catch(error => {
-          console.log("エラーが発生しました:", error);
-        });
-      }
+          .then(response => response.json()) 
+          .then(data => {    
+            for (let i=0; i < 10; i++){  
+                  if (data.message === 'File exists') {
+                    console.log("download.pdfは存在します");
+                    let contentFrame = document.getElementById("content");
+                    contentFrame.src = "/temp/download.pdf";
+                    isDownloaded = true; // フラグを更新
+
+                    tryDeleteFile()
+                    break;
+
+                  } else {
+                    console.log("download.pdfは存在しません");
+                  }
+              
+            }
+          })
+        
+          .catch(error => {
+            console.log("エラーが発生しました:", error);
+          });
+        }
 
       // ファイルがダウンロードされた（isDownloaded = true）後に、一度だけ削除処理を呼び出す
       function tryDeleteFile() {
+        console.log("delete関数は発動しています");
+
         if (isDownloaded) {
           fetch('/delete_pdf', {
             method: 'DELETE'
@@ -77,11 +101,11 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
         }
       }
 
-      // 15秒ごとにcheckFileExistsを呼び出す
-      setInterval(checkFileExists, 15000);
+      // // 15秒ごとにcheckFileExistsを呼び出す
+      // setInterval(checkFileExists, 15000);
 
-      // 5秒ごとにtryDeleteFileを呼び出す
-      setInterval(tryDeleteFile, 5000);
+      // // 5秒ごとにtryDeleteFileを呼び出す
+      // setInterval(tryDeleteFile, 5000);
     </script>
   </body>
 </html>
