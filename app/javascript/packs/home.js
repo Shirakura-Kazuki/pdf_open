@@ -18,18 +18,25 @@ document.addEventListener("DOMContentLoaded", function() {
     // 新しい`<div>`要素を作成
     var notification = document.createElement('div');
     // <div>`要素に表示するテキストを設定:通知のスタイル変更
-    notification.innerText = 'ファイルの更新を行います：' + data.message;
+    
+    // notification.innerText = 'ファイルの更新を行います：' + data.message;
+    notification.innerText = 'しばらくお待ちください' + data.message;
     notification.style.position = 'fixed';
     notification.style.backgroundposition = 'righttops';
-    notification.style.top = '50%';
+    notification.style.top = '10%';
     notification.style.left = '50%';
     notification.style.transform = 'translate(-50%, -50%)';
-    notification.style.backgroundColor = '#ffffff';
+    notification.style.backgroundColor = '#AFEEEE';
     notification.style.border = '1px solid #ccc';
-    notification.style.padding = '150px';
-    notification.style.width = '200px';
-    notification.style.height = '100px';  
+    notification.style.color = '#000000'
+    notification.style.border = '1px solid #ccc';
+    notification.style.borderRadius = '12px';  // 角を丸く
+    notification.style.padding = '15px 30px';  // 内側の余白（上下15px、左右30px）
+    notification.style.width = 'auto';  // 横幅は自動
+    notification.style.height = 'auto';  // 縦幅は自動
+    notification.style.border = "outset 3px #808080";
     notification.style.zIndex = '1000';
+    notification.style.textAlign = 'center';  // テキストを中央寄せに
     document.body.appendChild(notification);
 
     // 3秒後に通知を閉じる
