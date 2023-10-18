@@ -61,5 +61,32 @@
 
 
 <%# テスト用 %>
+`look_1` と `look_2` の両方が `true` の場合、または片方が `false` の場合、
+さらに両方が `false` の場合でそれぞれ異なる動作をさせたいということですね。
+
+以下のように条件分岐を追加することで、指定した動作を実装できます。
+
+```ruby
+if look_1 && look_2
+  # 両方がtrueの場合：Pusherでイベントをトリガー
+  begin
+    Pusher.trigger('my-channel', 'my-event', { message: @id_1 + @id_2 })
+    head :ok
+  rescue => e
+    render json: { error: "Pusherでエラーが発生しました: #{e.message}" }, status: :internal_server_error
+  end
+elsif look_1 && !look_2
+  # look_1はtrueだがlook_2がfalseの場合
+  render json: { error: "look_2: NGの為、再発行してください" }, status: :internal_server_error
+elsif !look_1 && look_2
+  # look_1はfalseだがlook_2がtrueの場合
+  render json: { error: "look_1: NGの為、再発行してください" }, status: :internal_server_error
+else
+  # 両方がfalseの場合
+  render json: { error: "ステータス異常！！再発行してください" }, status: :internal_server_error
+end
+```
+
+このようにすることで、`look_1` と `look_2` の状態に応じて適切な処理が行われます。
 
 

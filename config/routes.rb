@@ -6,10 +6,16 @@ Rails.application.routes.draw do
   get 'open_pdf' , to:'home#open_pdf'
   get 'test' ,to:'home#test'
   post '/open_pdf', to: 'home#open_pdf'
-  delete '/delete_pdf', to: 'home#delete_pdf'
+  
+
   get 'display' , to:'home#display'
+  get 'submonitor' , to:'home#submonitor'
 
 
   # ファイルcheck関数テスト
-  get '/check_file_exists' , to:'home#check_file_exists'
+  get '/check_file_1' , to:'home#check_file_1'
+  get '/check_file_2' , to:'home#check_file_2'
+
+  delete '/delete_pdf_1', to: 'home#delete_pdf_1'
+  delete '/delete_pdf_2', to: 'home#delete_pdf_2'
 end

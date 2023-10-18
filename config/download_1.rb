@@ -4,8 +4,12 @@ require 'json'
 require "base64"
 
 # 環境変数：home_controller.rb
+modified_url_s = ENV['FILE_ID_1'] 
 keycode_s = ENV['KEYCODE']
-modified_url_s = ENV['FILE_ID'] 
+# file_id_1 = ENV['FILE_ID_1']
+
+# file_id_2 = ENV['FILE_ID_2']
+# download_path_2 = ENV['DOWNLOAD_PATH_2']
 
 
 response = Net::HTTP.post(
@@ -17,8 +21,8 @@ response = Net::HTTP.post(
     'Content-Type' => 'application/json'
 )
 
-puts modified_url_s + ":add"
-puts keycode_s +":add"
+puts modified_url_s 
+puts keycode_s
 
 case response
 when Net::HTTPSuccess
@@ -56,7 +60,10 @@ puts params['message']
 
 
 # ファイルに保存
-download_path = ENV['DOWNLOAD_PATH']
-File.open(download_path, "wb") do |file|
+download_path_1 = ENV['DOWNLOAD_PATH_1']
+File.open(download_path_1, "wb") do |file|
      file.write(Base64.decode64(params['base64']))
 end
+
+
+

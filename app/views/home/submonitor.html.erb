@@ -30,7 +30,7 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
   </head>
   <body>
     <!-- 表示用 iframe -->
-    <iframe id="content" src='/temp/display1/default.pdf'></iframe>
+    <iframe id="content" src='/temp/display2/default.pdf'></iframe>
     <script>
       let isDownloaded = false; // ファイルがダウンロードされたかどうかを示すフラグ
 
@@ -39,7 +39,7 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
         let contentFrame = document.getElementById("content");
         
         // 初期表示は/temp/default.pdf
-        contentFrame.src = "/temp/display1/default.pdf";
+        contentFrame.src = "/temp/display2/default.pdf";
       };
 
       //プッシュ通知を感知して、該当するファイルを参照する
@@ -59,19 +59,19 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
 
       // ファイルの存在を確認　
       function checkFileExists() {
-        fetch("/check_file_1")
+        fetch("/check_file_2")
           .then(response => response.json()) 
           .then(data => {     
                   if (data.message === 'File exists') {
-                    console.log("download_1.pdfは存在します");
+                    console.log("download_2.pdfは存在します");
                     let contentFrame = document.getElementById("content");
-                    contentFrame.src = "/temp/display1/download_1.pdf";
+                    contentFrame.src = "/temp/display2/download_2.pdf";
                     isDownloaded = true; // フラグを更新
 
                     tryDeleteFile()
 
                   } else {
-                    console.log("download_1.pdfは存在しません");
+                    console.log("download_2.pdfは存在しません");
                   }
           })
         
@@ -85,7 +85,7 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
         console.log("delete関数は発動しています");
 
         if (isDownloaded) {
-          fetch('/delete_pdf_1', {
+          fetch('/delete_pdf_2', {
             method: 'DELETE'
           })
           .then(() => {

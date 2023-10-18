@@ -20,7 +20,8 @@ document.addEventListener("DOMContentLoaded", function() {
     // <div>`要素に表示するテキストを設定:通知のスタイル変更
     
     // notification.innerText = 'ファイルの更新を行います：' + data.message;
-    notification.innerText = 'しばらくお待ちください' + data.message;
+    // notification.innerText = '現在表示しているPDFファイルは' + data.message;
+    notification.innerHTML = '現在表示しているPDFファイルは <br>' + data.message.replace(/display/g, '<br>display');
     notification.style.position = 'fixed';
     notification.style.backgroundposition = 'righttops';
     notification.style.top = '10%';
@@ -42,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // 3秒後に通知を閉じる
     setTimeout(function() {
       document.body.removeChild(notification);
-    }, 3000);
+    }, 10000);
   });
 });
 
