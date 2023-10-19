@@ -81,3 +81,4 @@ group :production do
   gem 'pg'
 end
 
+gem 'psych', '5.0.1'
