@@ -13,9 +13,22 @@ Rails.application.routes.draw do
 
 
   # ファイルcheck関数テスト
-  get '/check_file_1' , to:'home#check_file_1'
-  get '/check_file_2' , to:'home#check_file_2'
+  
 
-  delete '/delete_pdf_1', to: 'home#delete_pdf_1'
-  delete '/delete_pdf_2', to: 'home#delete_pdf_2'
+  post '/delete_file', to: 'home#delete_file'
+  
+
+
+  #パラメータ付きURLテスト
+  get '/display_n', to: 'home#index'
+  get 'display', to:'home#display'
+
+  post '/check_file', to:'home#check_file'
+
+ 
+
+  get 'htmlfile_download', to: 'home#htmlfile_download'
+  get 'event1' , to: 'home#event1'
+
+
 end

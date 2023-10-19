@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html>
+  
   <head>
+    
     <title>PusherTest1010App</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+
+    <%= include_gon %>
 
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
@@ -16,6 +21,6 @@
   <body>
     <%= yield %>
     <%# home.js：pusher定義 %>
-    <%= javascript_pack_tag 'home' %>
+    <%# <%= javascript_pack_tag 'home' %> 
   </body>
 </html>

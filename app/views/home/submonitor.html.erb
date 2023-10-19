@@ -1,102 +1,21 @@
 <!DOCTYPE html>
-
-<!-- 以下はサーバー側のAPIを呼び出すためのcurlコマンド例 -->
-<%# :1013_test用.pdf ...
-curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1Cb3pJG-8A6LCY8XvlXl_vgCjPk9OoJxu""}" http://localhost:3000/open_pdf
- %> 
-<%# :ストレスケア ... 
-curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1VXKVUAG5XiAp99-OLp5CUvGxwi3RvtY1""}" http://localhost:3000/open_pdf
-%>
-<%#：待機画像 ...
-curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO1AZAhF9C1o7kaB52CK"", ""id"": ""1t8OueyGZqRhKoWVKWNUmrvqJ-EUmQPog""}" http://localhost:3000/open_pdf
-%>
-
-<html>
   <head>
-    <base target="_top">
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        height: 100vh;
-      }
-      iframe {
-        border: none;
-        width: 100%;
-        height: 100%;
-      }
-    </style>
+    <meta charset="UTF-8">
+    <title>BASICPASSWORD</title>
   </head>
   <body>
-    <!-- 表示用 iframe -->
-    <iframe id="content" src='/temp/display2/default.pdf'></iframe>
-    <script>
-      let isDownloaded = false; // ファイルがダウンロードされたかどうかを示すフラグ
+    <table>
+      <tr>
+        <th>test</th>
+        <td><%= @BASIC_NAME %></td>
+      </tr>
 
-      window.onload = function() {
-        // iframe要素を取得
-        let contentFrame = document.getElementById("content");
-        
-        // 初期表示は/temp/default.pdf
-        contentFrame.src = "/temp/display2/default.pdf";
-      };
+      <tr>
+        <th>testpass</th>
+        <td><%= @BASIC_PASSWORD %></td>
+      </tr>
 
-      //プッシュ通知を感知して、該当するファイルを参照する
-      // Pusherのインスタンスを作成
-      var pusher = new Pusher('32f2640be6b94e4b6afe', {
-      cluster: 'ap3'
-      });
-
-      var channel = pusher.subscribe('my-channel');
-
-      channel.bind('my-event', function(data) {
-        // ここでcheckFileExistsを呼び出す
-        console.log("ファイルcheck関数は発動していません");
-        checkFileExists();
-        console.log("ファイルcheck関数は発動しています");
-      });
-
-      // ファイルの存在を確認　
-      function checkFileExists() {
-        fetch("/check_file_2")
-          .then(response => response.json()) 
-          .then(data => {     
-                  if (data.message === 'File exists') {
-                    console.log("download_2.pdfは存在します");
-                    let contentFrame = document.getElementById("content");
-                    contentFrame.src = "/temp/display2/download_2.pdf";
-                    isDownloaded = true; // フラグを更新
-
-                    tryDeleteFile()
-
-                  } else {
-                    console.log("download_2.pdfは存在しません");
-                  }
-          })
-        
-          .catch(error => {
-            console.log("エラーが発生しました:", error);
-          });
-        }
-
-      // ファイルがダウンロードされた（isDownloaded = true）後に、一度だけ削除処理を呼び出す
-      function tryDeleteFile() {
-        console.log("delete関数は発動しています");
-
-        if (isDownloaded) {
-          fetch('/delete_pdf_2', {
-            method: 'DELETE'
-          })
-          .then(() => {
-            console.log("delete_pdf成功");
-          })
-          .catch(() => {
-            console.log("delete_pdf失敗");
-          });
-          isDownloaded = false; // フラグをリセット
-        }
-      }
-    </script>
+    </table>
   </body>
 </html>
+

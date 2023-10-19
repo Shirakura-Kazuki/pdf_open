@@ -74,3 +74,5 @@ end
 gem 'pusher'
 
 gem 'webpacker', '~> 5.0'
+gem 'gon'
+gem 'dotenv-rails'

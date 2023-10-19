@@ -6,15 +6,12 @@ require "base64"
 # 環境変数：home_controller.rb
 modified_url_s = ENV['FILE_ID'] 
 keycode_s = ENV['KEYCODE']
-# file_id_1 = ENV['FILE_ID_1']
-
-# file_id_2 = ENV['FILE_ID_2']
-# download_path_2 = ENV['DOWNLOAD_PATH_2']
-
+urlget = ENV['FILEGET'].to_s
 
 response = Net::HTTP.post(
     # 自分の製作したAPPのURL
-    URI('https://script.google.com/macros/s/AKfycbzo7SHpPmcN0wcaicmINs2o5nesndA0hoNKSLSwPao98MrUFqY-mcxnHm3u5M1IF526/exec'),
+    #URI('https://script.google.com/macros/s/AKfycbzo7SHpPmcN0wcaicmINs2o5nesndA0hoNKSLSwPao98MrUFqY-mcxnHm3u5M1IF526/exec'),
+    URI(urlget),
     
     #GASAPIのキーコードとダウンロードするファイルのIDを定義
     {keycode:keycode_s , id:modified_url_s}.to_json,    
@@ -60,8 +57,8 @@ puts params['message']
 
 
 # ファイルに保存
-download_path_1 = ENV['DOWNLOAD_PATH_1']
-File.open(download_path_1, "wb") do |file|
+download_path = ENV['DOWNLOAD_PATH']
+File.open(download_path, "wb") do |file|
      file.write(Base64.decode64(params['base64']))
 end
 

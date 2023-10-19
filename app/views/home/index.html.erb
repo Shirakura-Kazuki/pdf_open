@@ -1,0 +1,15 @@
+<h1>Hello world, IDは<%= @id %>です</h1>
+
+// JavaScriptコード
+<script>
+    fetch('/send_id')
+    .then(response => response.json())
+    .then(data => {
+        const id = data.id;
+        const newUrl = `/display_n?id=${id}`;
+        window.location.href = newUrl;
+    })
+    .catch(error => {
+        console.error('エラー:', error);
+    });
+</script>

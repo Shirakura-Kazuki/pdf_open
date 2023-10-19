@@ -32,49 +32,71 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
     <!-- 表示用 iframe -->
     <iframe id="content" src='/temp/display1/default.pdf'></iframe>
     <script>
-      let isDownloaded = false; // ファイルがダウンロードされたかどうかを示すフラグ
+      let isDownloaded = false; // ファイルダウンロード確認flag
+      let display = 1;  //変数displayを宣言
 
-      window.onload = function() {
+      window.onload = function() { 
+        let params = new URLSearchParams(window.location.search); //URLのパラメータから`display`の値を取得
+          //URLのクエリパラメータを解析
+        if (params.has("display"))
+        // クエリパラメータ（例：`http://example.com/?display=2` の `?display=2` 部分）を解析
+        {
+          display = params.get("display");
+          // 値を取得し、`display` 変数に設定
+        }
+        
+        //alert("display" + display); //変数displayの値をアラートダイアログで表示
+
         // iframe要素を取得
         let contentFrame = document.getElementById("content");
         
         // 初期表示は/temp/default.pdf
-        contentFrame.src = "/temp/display1/default.pdf";
+        contentFrame.src = "/temp/display" + display + "/default.pdf";
+
+        //プッシュ通知を感知して、該当するファイルを参照する
+        // Pusherのインスタンスを作成
+        var pusher = new Pusher('32f2640be6b94e4b6afe', {
+          cluster: 'ap3'
+        });
+
+        var channel = pusher.subscribe('filechange');
+        var eventName = 'display' + display; //eventname変数定義
+        
+        
+        channel.bind(eventName, function(data) {
+          // ここでcheckFileExistsを呼び出す
+          notification(data);
+          console.log(eventName + "のevent実行中:ファイルcheck関数は発動していません");
+          checkFileExists();
+          console.log(eventName + "のevent完了しました:ファイルcheck関数は発動しています");
+        });
       };
 
-      //プッシュ通知を感知して、該当するファイルを参照する
-      // Pusherのインスタンスを作成
-      var pusher = new Pusher('32f2640be6b94e4b6afe', {
-      cluster: 'ap3'
-      });
+      
 
-      var channel = pusher.subscribe('my-channel');
-
-      channel.bind('my-event', function(data) {
-        // ここでcheckFileExistsを呼び出す
-        console.log("ファイルcheck関数は発動していません");
-        checkFileExists();
-        console.log("ファイルcheck関数は発動しています");
-      });
-
-      // ファイルの存在を確認　
+      // ファイルの存在を確認　s
       function checkFileExists() {
-        fetch("/check_file_1")
+        // HTTPリクエストの場合：headerで形式を判断するためにheaderにtypeを定義する
+        let params = {method : "POST",headers:{'Content-Type':'application/json'}, body : JSON.stringify({display2 :display})};
+        console.log("ファイル関数へ送信するパラメータ:" + JSON.stringify(params));
+
+        fetch("/check_file" ,params)
           .then(response => response.json()) 
+          // fetchのresponse→.jdon加工→data格納
           .then(data => {     
                   if (data.message === 'File exists') {
-                    console.log("download_1.pdfは存在します");
+                    console.log("download_" + display + ".pdfは存在します");
                     let contentFrame = document.getElementById("content");
-                    contentFrame.src = "/temp/display1/download_1.pdf";
+                    contentFrame.src = "/temp/display"+ display +"/download_" + display + ".pdf";
                     isDownloaded = true; // フラグを更新
 
                     tryDeleteFile()
 
                   } else {
-                    console.log("download_1.pdfは存在しません");
+                    console.log("download_"+ display +".pdfは存在しません");
                   }
           })
-        
+          // 通信エラーが発生した場合
           .catch(error => {
             console.log("エラーが発生しました:", error);
           });
@@ -83,11 +105,10 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
       // ファイルがダウンロードされた（isDownloaded = true）後に、一度だけ削除処理を呼び出す
       function tryDeleteFile() {
         console.log("delete関数は発動しています");
+        let params = {method : "POST",headers:{'Content-Type':'application/json'}, body : JSON.stringify({display2 :display})};
 
         if (isDownloaded) {
-          fetch('/delete_pdf_1', {
-            method: 'DELETE'
-          })
+         fetch("/delete_file" ,params)
           .then(() => {
             console.log("delete_pdf成功");
           })
@@ -97,6 +118,39 @@ curl -X POST -H "Content-Type: application/json" -d "{""keycode"": ""download_SO
           isDownloaded = false; // フラグをリセット
         }
       }
+    function notification(data) {
+      var notification = document.createElement('div');
+      // <div>`要素に表示するテキストを設定:通知のスタイル変更
+      
+      // notification.innerText = 'ファイルの更新を行います：' + data.message;
+      notification.innerText = '表示しているPDFファイルは' + data.message;
+      // notification.innerHTML = '現在表示しているPDFファイルは <br>' + data.message.replace(/display/g, '<br>display');
+      notification.style.position = 'fixed';
+      notification.style.backgroundposition = 'righttops';
+      notification.style.top = '10%';
+      notification.style.left = '50%';
+      notification.style.transform = 'translate(-50%, -50%)';
+      notification.style.backgroundColor = '#AFEEEE';
+      notification.style.border = '1px solid #ccc';
+      notification.style.color = '#000000'
+      notification.style.border = '1px solid #ccc';
+      notification.style.borderRadius = '12px';  // 角を丸く
+      notification.style.padding = '15px 30px';  // 内側の余白（上下15px、左右30px）
+      notification.style.width = 'auto';  // 横幅は自動
+      notification.style.height = 'auto';  // 縦幅は自動
+      notification.style.border = "outset 3px #808080";
+      notification.style.zIndex = '1000';
+      notification.style.textAlign = 'center';  // テキストを中央寄せに
+      document.body.appendChild(notification);
+
+      // 3秒後に通知を閉じる
+      setTimeout(function() {
+        document.body.removeChild(notification);
+      }, 5000);
+    }  
     </script>
   </body>
 </html>
+
+
+
